@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+
 import 'package:money_manager_app/model/wallet_model.dart';
 import 'package:money_manager_app/pages/add_expense.dart';
 import 'package:money_manager_app/pages/add_income.dart';
+import 'package:money_manager_app/pages/walet_details.dart';
 import 'package:money_manager_app/widget/drawer.dart';
 
-List<String> dropDownlist = <String>[
-  'monthly',
-  'year',
-  'weekly',
-  'daily'
+List<String> dropDownList = [
+  'Monthly',
+  'Yearly',
+  'Weekly',
+  'Daily',
 ];
 
 class HomeContent extends StatefulWidget {
@@ -21,25 +23,37 @@ class HomeContent extends StatefulWidget {
 }
 
 class _HomeContentState extends State<HomeContent> {
-  DateTime selectmonth = DateTime(2026, 1);
-  String dropdownvalue = dropDownlist.first;
+  DateTime selectedDate = DateTime.now();
+  String dropdownValue = dropDownList.first;
 
   Future<void> pickDate() async {
     final DateTime? date = await showDatePicker(
       context: context,
-      initialDate: selectmonth,
+      initialDate: selectedDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
+
     if (date != null) {
       setState(() {
-        selectmonth = DateTime(date.year, date.month);
+        selectedDate = date;
       });
     }
-  }       
+  }
 
-
-
+  String get formattedDate {
+    switch (dropdownValue) {
+      case 'Yearly':
+        return DateFormat('yyyy').format(selectedDate);
+      case 'Weekly':
+        final week = DateFormat('w').format(selectedDate);
+        return 'Week $week, ${selectedDate.year}';
+      case 'Daily':
+        return DateFormat('dd MMM yyyy').format(selectedDate);
+      default:
+        return DateFormat('MMM yyyy').format(selectedDate);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +64,7 @@ class _HomeContentState extends State<HomeContent> {
       appBar: AppBar(
         title: const Text(
           'MONEY MANAGER',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 23),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         leading: Builder(
           builder: (context) => IconButton(
@@ -59,7 +73,8 @@ class _HomeContentState extends State<HomeContent> {
           ),
         ),
       ),
-      drawer: AppDrawer(),
+      drawer: const AppDrawer(),
+
       floatingActionButton: PopupMenuButton<String>(
         icon: const Icon(Icons.add, color: Colors.white),
         onSelected: (value) {
@@ -80,113 +95,107 @@ class _HomeContentState extends State<HomeContent> {
           PopupMenuItem(value: 'expense', child: Text('Expense')),
         ],
       ),
+
       body: ValueListenableBuilder(
         valueListenable: walletBox.listenable(),
         builder: (context, Box<WalletModel> box, _) {
+          if (box.isEmpty) {
+            return const Center(child: Text('No Wallet Data'));
+          }
+
           final wallet = box.getAt(0)!;
 
           return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color.fromARGB(255, 92, 77, 226),
-                          Color.fromARGB(255, 52, 52, 52),
-                        ],
-                      ),
-                    ),
-                    padding: const EdgeInsets.all(15),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            DropdownButton<String>(
-                              value: dropdownvalue,
-                              onChanged: (value) {
-                                setState(() => dropdownvalue = value!);
-                              },
-                              items: dropDownlist
-                                  .map((e) => DropdownMenuItem(
-                                        value: e,
-                                        child: Text(e),
-                                      ))
-                                  .toList(),
-                            ),
-                            GestureDetector(
-                              onTap: pickDate,
-                              child: Text(
-                                DateFormat('MMM yyyy').format(selectmonth),
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 30),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            Column(
-                              children: [
-                                Text(
-                                  '₹ ${(wallet.cashIncome + wallet.accIncome).toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.green,
-                                      fontSize: 20),
-                                ),
-                                const Text(
-                                  'Income',
-                                  style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                            Column(
-                              children: [
-                                Text(
-                                  '₹ -${(wallet.cashExpense + wallet.accExpense).toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.red,
-                                      fontSize: 20),
-                                ),
-                                const Text(
-                                  'Expense',
-                                  style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color.fromARGB(255, 92, 77, 226),
+                        Color.fromARGB(255, 52, 52, 52),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  _walletCard(
-                    title: "Bank Account",
-                    balance: wallet.accBalance,
-                    income: wallet.accIncome,
-                    expense: wallet.accExpense,
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          DropdownButton<String>(
+                            value: dropdownValue,
+                            dropdownColor: Colors.white,
+                            items: dropDownList
+                                .map(
+                                  (e) => DropdownMenuItem(
+                                    value: e,
+                                    child: Text(e),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() => dropdownValue = value!);
+                            },
+                          ),
+                          GestureDetector(
+                            onTap: pickDate,
+                            child: Text(
+                              formattedDate,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _summaryColumn(
+                            title: 'Income',
+                            value:
+                                wallet.cashIncome + wallet.accIncome,
+                            color: Colors.green,
+                          ),
+                          _summaryColumn(
+                            title: 'Expense',
+                            value:
+                                wallet.cashExpense + wallet.accExpense,
+                            color: Colors.red,
+                            isNegative: true,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 20),
-                  _walletCard(
-                    title: "Cash",
-                    balance: wallet.cashBalance,
-                    income: wallet.cashIncome,
-                    expense: wallet.cashExpense,
-                  ),
-                ],
-              ),
+                ),
+
+                const SizedBox(height: 20),
+
+                _walletCard(
+                  title: "Bank Account",
+                  balance: wallet.accBalance,
+                  income: wallet.accIncome,
+                  expense: wallet.accExpense,
+                ),
+
+                const SizedBox(height: 20),
+
+                _walletCard(
+                  title: "Cash",
+                  balance: wallet.cashBalance,
+                  income: wallet.cashIncome,
+                  expense: wallet.cashExpense,
+                ),
+              ],
             ),
           );
         },
@@ -194,47 +203,104 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
+  Widget _summaryColumn({
+    required String title,
+    required double value,
+    required Color color,
+    bool isNegative = false,
+  }) {
+    return Column(
+      children: [
+        Text(
+          "₹ ${isNegative ? '-' : ''}${value.toStringAsFixed(2)}",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+
+  
   Widget _walletCard({
     required String title,
     required double balance,
     required double income,
     required double expense,
   }) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(10)),
-      padding: const EdgeInsets.all(15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-                color: Colors.black, borderRadius: BorderRadius.circular(8)),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _walletText("Balance", balance.toStringAsFixed(2), Colors.white),
-                _walletText("Income", income.toStringAsFixed(2), Colors.green),
-                _walletText("Expense", "-${expense.toStringAsFixed(2)}", Colors.red),
-              ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => WalletDetailPage(
+              title: title,
+              balance: balance,
+              income: income,
+              expense: expense,
             ),
           ),
-        ],
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _walletText("Balance", balance, Colors.white),
+                  _walletText("Income", income, Colors.green),
+                  _walletText("Expense", -expense, Colors.red),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _walletText(String label, String value, Color color) {
+
+  Widget _walletText(String label, double value, Color color) {
     return Column(
       children: [
         Text(label, style: const TextStyle(color: Colors.white70)),
         const SizedBox(height: 5),
-        Text(value, style: TextStyle(color: color)),
+        Text(
+          "₹ ${value.toStringAsFixed(2)}",
+          style: TextStyle(color: color, fontWeight: FontWeight.bold),
+        ),
       ],
     );
   }

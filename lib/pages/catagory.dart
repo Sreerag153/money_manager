@@ -4,7 +4,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:money_manager_app/model/category_model.dart';
 import 'package:money_manager_app/widget/catogorylist.dart';
 
-
 class CategoryScreen extends StatefulWidget {
   const CategoryScreen({super.key});
 
@@ -23,12 +22,16 @@ class _CategoryScreenState extends State<CategoryScreen>
     _tabController = TabController(length: 2, vsync: this);
     categoryBox = Hive.box<CategoryModel>('categoryBox');
   }
- 
+
+  String capitalize(String text){
+    if (text.isEmpty)return text;
+    return text[0].toUpperCase()+text.substring(1).toLowerCase();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:  const Color.fromARGB(255, 86, 86, 86),
+      backgroundColor: const Color.fromARGB(255, 86, 86, 86),
       appBar: AppBar(
         title: const Text("Category"),
         bottom: TabBar(
@@ -40,18 +43,19 @@ class _CategoryScreenState extends State<CategoryScreen>
         ),
       ),
       body: TabBarView(
-  controller: _tabController,
-  children: const [
-    CategoryList(type: 'income'),
-    CategoryList(type: 'expense'),
-  ],
-),
+        controller: _tabController,
+        children: const [
+          CategoryList(type: 'income'),
+          CategoryList(type: 'expense'),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: addCategoryDialog,
         child: const Icon(Icons.add),
       ),
     );
-  }
+
+}
 
   void addCategoryDialog() {
     final controller = TextEditingController();
@@ -74,11 +78,10 @@ class _CategoryScreenState extends State<CategoryScreen>
               onPressed: () {
                 if (controller.text.isEmpty) return;
 
-                final type =
-                    _tabController.index == 0 ? 'income' : 'expense';
+                final type = _tabController.index == 0 ? 'income' : 'expense';
 
                 final category = CategoryModel(
-                  name: controller.text,
+                  name: capitalize(controller.text.trim()),
                   type: type,
                 );
 
