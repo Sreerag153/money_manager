@@ -5,25 +5,24 @@ import 'package:money_manager_app/model/wallet_model.dart';
 
 
 class TransactionDB {
-  static final txBox = Hive.box<TransactionModel>('transactions');
-  static final walletBox = Hive.box<WalletModel>('wallet');
+  static Box<TransactionModel> get box => Hive.box<TransactionModel>('transactions');
+  static Box<WalletModel> get walletBox => Hive.box<WalletModel>('wallet');
 
   static void add(TransactionModel tx) {
-    txBox.add(tx);
-    _updateWallet(tx, add: true);
+    _updateWallet(tx, true);
   }
 
   static void delete(int index) {
-    final tx = txBox.getAt(index);
-    if (tx == null) return;
-
-    _updateWallet(tx, add: false);
-    txBox.deleteAt(index);
+    final tx = box.getAt(index);
+    if (tx != null) {
+      _updateWallet(tx, false);
+      box.deleteAt(index);
+    }
   }
 
-  static void _updateWallet(TransactionModel tx, {required bool add}) {
+  static void _updateWallet(TransactionModel tx, bool isAdd) {
     final wallet = walletBox.getAt(0)!;
-    final factor = add ? 1 : -1;
+    final factor = isAdd ? 1 : -1;
 
     if (tx.type == 'income') {
       if (tx.account == 'Cash') {
@@ -39,6 +38,6 @@ class TransactionDB {
       }
     }
 
-    wallet.save(); 
+    wallet.save();
   }
 }

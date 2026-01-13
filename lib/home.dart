@@ -19,7 +19,7 @@ class _HomepageState extends State<Homepage> {
     HomeContent(),
     CategoryScreen(),
     Wallet(),
-    Event()
+    EventPage()
   ];
 
   @override

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:money_manager_app/database/transactiondb.dart';
-
 import 'package:money_manager_app/model/transaction_model.dart';
 
 class Wallet extends StatefulWidget {
@@ -34,15 +33,15 @@ class _WalletState extends State<Wallet> {
       backgroundColor: const Color.fromARGB(255, 86, 86, 86),
       appBar: AppBar(
         title: const Text("Wallet"),
-       
       ),
-
       body: ValueListenableBuilder(
         valueListenable:
             Hive.box<TransactionModel>('transactions').listenable(),
         builder: (context, Box<TransactionModel> box, _) {
 
-          final transactions = box.values.toList();
+          final List<TransactionModel> transactions =
+              box.values.toList()
+                ..sort((a, b) => b.date.compareTo(a.date));
 
           return Column(
             children: [
@@ -61,7 +60,7 @@ class _WalletState extends State<Wallet> {
                         itemCount: transactions.length,
                         itemBuilder: (context, index) {
 
-                          final tx = box.getAt(index)!;
+                          final tx = transactions[index];
 
                           return Slidable(
                             key: ValueKey(tx.key),
@@ -70,7 +69,7 @@ class _WalletState extends State<Wallet> {
                               children: [
                                 SlidableAction(
                                   onPressed: (context) {
-                                    TransactionDB.delete(index);
+                                    TransactionDB.delete(tx.key);
                                   },
                                   backgroundColor: Colors.red,
                                   foregroundColor: Colors.white,
@@ -79,7 +78,6 @@ class _WalletState extends State<Wallet> {
                                 ),
                               ],
                             ),
-
                             child: Card(
                               margin: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 6),

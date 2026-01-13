@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-
 import 'package:money_manager_app/model/wallet_model.dart';
 import 'package:money_manager_app/pages/add_expense.dart';
 import 'package:money_manager_app/pages/add_income.dart';
@@ -105,6 +104,13 @@ class _HomeContentState extends State<HomeContent> {
 
           final wallet = box.getAt(0)!;
 
+          final totalIncome = wallet.cashIncome + wallet.accIncome;
+          final totalExpense = wallet.cashExpense + wallet.accExpense;
+          final total = totalIncome + totalExpense;
+
+          final incomePercent = total == 0 ? 0.0 : totalIncome / total;
+          final expensePercent = total == 0 ? 0.0 : totalExpense / total;
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -124,10 +130,11 @@ class _HomeContentState extends State<HomeContent> {
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
+                        children: [ 
                           DropdownButton<String>(
                             value: dropdownValue,
                             dropdownColor: Colors.white,
+                            underline: const SizedBox(),
                             items: dropDownList
                                 .map(
                                   (e) => DropdownMenuItem(
@@ -159,18 +166,17 @@ class _HomeContentState extends State<HomeContent> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _summaryColumn(
+                          _circularSummary(
                             title: 'Income',
-                            value:
-                                wallet.cashIncome + wallet.accIncome,
+                            amount: totalIncome,
+                            percent: incomePercent,
                             color: Colors.green,
                           ),
-                          _summaryColumn(
+                          _circularSummary(
                             title: 'Expense',
-                            value:
-                                wallet.cashExpense + wallet.accExpense,
+                            amount: totalExpense,
+                            percent: expensePercent,
                             color: Colors.red,
-                            isNegative: true,
                           ),
                         ],
                       ),
@@ -203,27 +209,53 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-  Widget _summaryColumn({
+  Widget _circularSummary({
     required String title,
-    required double value,
+    required double amount,
+    required double percent,
     required Color color,
-    bool isNegative = false,
   }) {
     return Column(
       children: [
-        Text(
-          "₹ ${isNegative ? '-' : ''}${value.toStringAsFixed(2)}",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox(
+              width: 100,
+              height: 100,
+              child: CircularProgressIndicator(
+                value: percent,
+                strokeWidth: 8,
+                backgroundColor: Colors.white24,
+                valueColor: AlwaysStoppedAnimation(color),
+              ),
+            ),
+            Column(
+              children: [
+                Text(
+                  "₹ ${amount.toStringAsFixed(0)}",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  "${(percent * 100).toStringAsFixed(1)}%",
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: 10),
         Text(
           title,
           style: const TextStyle(
-            fontSize: 18,
+            fontSize: 16,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
@@ -232,7 +264,6 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-  
   Widget _walletCard({
     required String title,
     required double balance,
@@ -290,7 +321,6 @@ class _HomeContentState extends State<HomeContent> {
       ),
     );
   }
-
 
   Widget _walletText(String label, double value, Color color) {
     return Column(

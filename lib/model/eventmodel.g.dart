@@ -24,7 +24,7 @@ class EventModelAdapter extends TypeAdapter<EventModel> {
       category: fields[4] as String?,
       splitAmount: fields[5] as double?,
       attachmentPath: fields[6] as String?,
-      paymentType: fields[7] as String?,
+      paymentType: fields[7] as String,
     );
   }
 

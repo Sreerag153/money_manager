@@ -124,7 +124,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
               const SizedBox(height: 15),
 
-              /// Job
               TextFormField(
                 controller: jobController,
                 enabled: isEdit || !profileCreated,
