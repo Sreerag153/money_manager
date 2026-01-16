@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+
 import 'package:money_manager_app/database/transactiondb.dart';
 import 'package:money_manager_app/model/transaction_model.dart';
 
@@ -12,17 +13,14 @@ class Wallet extends StatefulWidget {
 }
 
 class _WalletState extends State<Wallet> {
-
   double getBalance(List<TransactionModel> transactions) {
     double income = 0;
     double expense = 0;
 
     for (var tx in transactions) {
-      if (tx.type == 'income') {
-        income += tx.amount;
-      } else {
-        expense += tx.amount;
-      }
+      tx.type == 'income'
+          ? income += tx.amount
+          : expense += tx.amount;
     }
     return income - expense;
   }
@@ -30,23 +28,28 @@ class _WalletState extends State<Wallet> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 86, 86, 86),
+      backgroundColor: const Color(0xff0F172A),
       appBar: AppBar(
-        title: const Text("Wallet"),
+        backgroundColor: const Color(0xff0F172A),
+        elevation: 0,
+        title: const Text(
+          "Wallet",
+          style: TextStyle(
+            color: Colors.amber,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       body: ValueListenableBuilder(
         valueListenable:
             Hive.box<TransactionModel>('transactions').listenable(),
         builder: (context, Box<TransactionModel> box, _) {
-
-          final List<TransactionModel> transactions =
-              box.values.toList()
-                ..sort((a, b) => b.date.compareTo(a.date));
+          final transactions = box.values.toList()
+            ..sort((a, b) => b.date.compareTo(a.date));
 
           return Column(
             children: [
-
-              balanceCard(getBalance(transactions)),
+              _balanceCard(getBalance(transactions)),
 
               Expanded(
                 child: transactions.isEmpty
@@ -57,10 +60,11 @@ class _WalletState extends State<Wallet> {
                         ),
                       )
                     : ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 16),
                         itemCount: transactions.length,
                         itemBuilder: (context, index) {
-
                           final tx = transactions[index];
+                          final isIncome = tx.type == 'income';
 
                           return Slidable(
                             key: ValueKey(tx.key),
@@ -68,44 +72,75 @@ class _WalletState extends State<Wallet> {
                               motion: const StretchMotion(),
                               children: [
                                 SlidableAction(
-                                  onPressed: (context) {
-                                    TransactionDB.delete(tx.key);
-                                  },
-                                  backgroundColor: Colors.red,
+                                  onPressed: (_) =>
+                                      TransactionDB.delete(tx.key),
+                                  backgroundColor: Colors.redAccent,
                                   foregroundColor: Colors.white,
                                   icon: Icons.delete,
                                   label: 'Delete',
                                 ),
                               ],
                             ),
-                            child: Card(
+                            child: Container(
                               margin: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: tx.type == 'income'
-                                      ? Colors.green
-                                      : Colors.red,
-                                  child: Icon(
-                                    tx.type == 'income'
-                                        ? Icons.arrow_downward
-                                        : Icons.arrow_upward,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                title: Text(tx.category),
-                                subtitle: Text(
-                                  tx.date.toString().split(' ')[0],
-                                ),
-                                trailing: Text(
-                                  "${tx.type == 'income' ? '+' : '-'}₹${tx.amount}",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: tx.type == 'income'
+                                  horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xff1E293B),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 22,
+                                    backgroundColor: isIncome
                                         ? Colors.green
                                         : Colors.red,
+                                    child: Icon(
+                                      isIncome
+                                          ? Icons.arrow_downward
+                                          : Icons.arrow_upward,
+                                      color: Colors.white,
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          tx.category,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          tx.date
+                                              .toString()
+                                              .split(' ')[0],
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Text(
+                                    "${isIncome ? '+' : '-'}₹${tx.amount.toStringAsFixed(2)}",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      color: isIncome
+                                          ? Colors.greenAccent
+                                          : Colors.redAccent,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           );
@@ -119,14 +154,20 @@ class _WalletState extends State<Wallet> {
     );
   }
 
-  Widget balanceCard(double balance) {
+  Widget _balanceCard(double balance) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.grey.shade900,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xff6366F1),
+              Color(0xff8B5CF6),
+            ],
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,11 +176,11 @@ class _WalletState extends State<Wallet> {
               "Total Balance",
               style: TextStyle(color: Colors.white70),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               "₹ ${balance.toStringAsFixed(2)}",
               style: const TextStyle(
-                fontSize: 26,
+                fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),

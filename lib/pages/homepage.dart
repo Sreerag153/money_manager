@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:money_manager_app/model/wallet_model.dart';
+
+import 'package:money_manager_app/model/transaction_model.dart';
 import 'package:money_manager_app/pages/add_expense.dart';
 import 'package:money_manager_app/pages/add_income.dart';
-import 'package:money_manager_app/pages/walet_details.dart';
 import 'package:money_manager_app/widget/drawer.dart';
+import 'package:money_manager_app/widget/inc_exp_circle.dart';
+import 'package:money_manager_app/widget/wallet_card.dart';
 
-List<String> dropDownList = [
-  'Monthly',
-  'Yearly',
-  'Weekly',
-  'Daily',
-];
+List<String> dropDownList = ['Monthly', 'Yearly', 'Weekly', 'Daily'];
 
 class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
@@ -26,17 +23,14 @@ class _HomeContentState extends State<HomeContent> {
   String dropdownValue = dropDownList.first;
 
   Future<void> pickDate() async {
-    final DateTime? date = await showDatePicker(
+    final date = await showDatePicker(
       context: context,
       initialDate: selectedDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-
     if (date != null) {
-      setState(() {
-        selectedDate = date;
-      });
+      setState(() => selectedDate = date);
     }
   }
 
@@ -45,8 +39,7 @@ class _HomeContentState extends State<HomeContent> {
       case 'Yearly':
         return DateFormat('yyyy').format(selectedDate);
       case 'Weekly':
-        final week = DateFormat('w').format(selectedDate);
-        return 'Week $week, ${selectedDate.year}';
+        return 'Week ${DateFormat('w').format(selectedDate)}, ${selectedDate.year}';
       case 'Daily':
         return DateFormat('dd MMM yyyy').format(selectedDate);
       default:
@@ -54,152 +47,167 @@ class _HomeContentState extends State<HomeContent> {
     }
   }
 
+  List<TransactionModel> filterTransactions(
+      List<TransactionModel> transactions) {
+    return transactions.where((tx) {
+      final d = tx.date;
+
+      switch (dropdownValue) {
+        case 'Daily':
+          return d.year == selectedDate.year &&
+              d.month == selectedDate.month &&
+              d.day == selectedDate.day;
+
+        case 'Weekly':
+          return DateFormat('w').format(d) ==
+                  DateFormat('w').format(selectedDate) &&
+              d.year == selectedDate.year;
+
+        case 'Yearly':
+          return d.year == selectedDate.year;
+
+        case 'Monthly':
+        default:
+          return d.year == selectedDate.year &&
+              d.month == selectedDate.month;
+      }
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final walletBox = Hive.box<WalletModel>('wallet');
+    final transactionBox =
+        Hive.box<TransactionModel>('transactions');
 
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 86, 86, 86),
+      backgroundColor: const Color(0xff0F172A),
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: const Text(
-          'MONEY MANAGER',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
-        ),
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(context).openDrawer(),
+          'Money Manager',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.amber,
           ),
         ),
       ),
       drawer: const AppDrawer(),
-
-      floatingActionButton: PopupMenuButton<String>(
-        icon: const Icon(Icons.add, color: Colors.white),
-        onSelected: (value) {
-          if (value == 'income') {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AddIncomePage()),
-            );
-          } else {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AddExpensePage()),
-            );
-          }
-        },
-        itemBuilder: (context) => const [
-          PopupMenuItem(value: 'income', child: Text('Income')),
-          PopupMenuItem(value: 'expense', child: Text('Expense')),
-        ],
-      ),
-
+      floatingActionButton: _fab(context),
       body: ValueListenableBuilder(
-        valueListenable: walletBox.listenable(),
-        builder: (context, Box<WalletModel> box, _) {
-          if (box.isEmpty) {
-            return const Center(child: Text('No Wallet Data'));
+        valueListenable: transactionBox.listenable(),
+        builder: (_, Box<TransactionModel> box, __) {
+          final allTransactions = box.values.toList();
+          final filtered = filterTransactions(allTransactions);
+
+          double income = 0;
+          double expense = 0;
+
+          double accIncome = 0;
+          double accExpense = 0;
+          double cashIncome = 0;
+          double cashExpense = 0;
+
+          for (var tx in filtered) {
+            if (tx.type == 'income') {
+              income += tx.amount;
+              tx.account == 'Account'
+                  ? accIncome += tx.amount
+                  : cashIncome += tx.amount;
+            } else {
+              expense += tx.amount;
+              tx.account == 'Account'
+                  ? accExpense += tx.amount
+                  : cashExpense += tx.amount;
+            }
           }
 
-          final wallet = box.getAt(0)!;
-
-          final totalIncome = wallet.cashIncome + wallet.accIncome;
-          final totalExpense = wallet.cashExpense + wallet.accExpense;
-          final total = totalIncome + totalExpense;
-
-          final incomePercent = total == 0 ? 0.0 : totalIncome / total;
-          final expensePercent = total == 0 ? 0.0 : totalExpense / total;
+          final total = income + expense;
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(15),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(22),
                     gradient: const LinearGradient(
-                      colors: [
-                        Color.fromARGB(255, 92, 77, 226),
-                        Color.fromARGB(255, 52, 52, 52),
-                      ],
+                      colors: [Color(0xff6366F1), Color(0xff8B5CF6)],
                     ),
                   ),
                   child: Column(
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [ 
+                        children: [
                           DropdownButton<String>(
                             value: dropdownValue,
-                            dropdownColor: Colors.white,
                             underline: const SizedBox(),
+                            dropdownColor: const Color(0xff1E293B),
                             items: dropDownList
                                 .map(
                                   (e) => DropdownMenuItem(
                                     value: e,
-                                    child: Text(e),
+                                    child: Text(
+                                      e,
+                                      style: const TextStyle(
+                                          color: Colors.white),
+                                    ),
                                   ),
                                 )
                                 .toList(),
-                            onChanged: (value) {
-                              setState(() => dropdownValue = value!);
-                            },
+                            onChanged: (v) =>
+                                setState(() => dropdownValue = v!),
                           ),
                           GestureDetector(
                             onTap: pickDate,
                             child: Text(
                               formattedDate,
                               style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
                                 color: Colors.white,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 30),
-
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _circularSummary(
+                          CircularTile(
                             title: 'Income',
-                            amount: totalIncome,
-                            percent: incomePercent,
-                            color: Colors.green,
+                            value: income,
+                            percent: total == 0 ? 0 : income / total,
+                            color: Colors.greenAccent,
                           ),
-                          _circularSummary(
+                          CircularTile(
                             title: 'Expense',
-                            amount: totalExpense,
-                            percent: expensePercent,
-                            color: Colors.red,
+                            value: expense,
+                            percent: total == 0 ? 0 : expense / total,
+                            color: Colors.redAccent,
                           ),
                         ],
                       ),
                     ],
                   ),
                 ),
-
-                const SizedBox(height: 20),
-
-                _walletCard(
-                  title: "Bank Account",
-                  balance: wallet.accBalance,
-                  income: wallet.accIncome,
-                  expense: wallet.accExpense,
+                const SizedBox(height: 24),
+                WalletCard(
+                  title: 'Bank Account',
+                  icon: Icons.account_balance,
+                  balance: accIncome - accExpense,
+                  income: accIncome,
+                  expense: accExpense,
                 ),
-
-                const SizedBox(height: 20),
-
-                _walletCard(
-                  title: "Cash",
-                  balance: wallet.cashBalance,
-                  income: wallet.cashIncome,
-                  expense: wallet.cashExpense,
+                const SizedBox(height: 16),
+                WalletCard(
+                  title: 'Cash',
+                  icon: Icons.wallet,
+                  balance: cashIncome - cashExpense,
+                  income: cashIncome,
+                  expense: cashExpense,
                 ),
               ],
             ),
@@ -209,128 +217,32 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-  Widget _circularSummary({
-    required String title,
-    required double amount,
-    required double percent,
-    required Color color,
-  }) {
-    return Column(
-      children: [
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox(
-              width: 100,
-              height: 100,
-              child: CircularProgressIndicator(
-                value: percent,
-                strokeWidth: 8,
-                backgroundColor: Colors.white24,
-                valueColor: AlwaysStoppedAnimation(color),
-              ),
-            ),
-            Column(
-              children: [
-                Text(
-                  "₹ ${amount.toStringAsFixed(0)}",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                Text(
-                  "${(percent * 100).toStringAsFixed(1)}%",
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+  Widget _fab(BuildContext context) {
+    return PopupMenuButton<String>(
+      icon: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [Color(0xff6366F1), Color(0xff8B5CF6)],
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _walletCard({
-    required String title,
-    required double balance,
-    required double income,
-    required double expense,
-  }) {
-    return GestureDetector(
-      onTap: () {
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      onSelected: (value) {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => WalletDetailPage(
-              title: title,
-              balance: balance,
-              income: income,
-              expense: expense,
-            ),
+            builder: (_) =>
+                value == 'income'
+                    ? const AddIncomePage()
+                    : const AddExpensePage(),
           ),
         );
       },
-      child: Container(
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _walletText("Balance", balance, Colors.white),
-                  _walletText("Income", income, Colors.green),
-                  _walletText("Expense", -expense, Colors.red),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _walletText(String label, double value, Color color) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(color: Colors.white70)),
-        const SizedBox(height: 5),
-        Text(
-          "₹ ${value.toStringAsFixed(2)}",
-          style: TextStyle(color: color, fontWeight: FontWeight.bold),
-        ),
+      itemBuilder: (_) => const [
+        PopupMenuItem(value: 'income', child: Text('Income')),
+        PopupMenuItem(value: 'expense', child: Text('Expense')),
       ],
     );
   }

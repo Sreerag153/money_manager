@@ -5,7 +5,7 @@ import 'package:money_manager_app/model/category_model.dart';
 import 'package:money_manager_app/model/transaction_model.dart';
 
 class CategoryList extends StatelessWidget {
-  final String type; 
+  final String type;
 
   const CategoryList({super.key, required this.type});
 
@@ -23,11 +23,13 @@ class CategoryList extends StatelessWidget {
         if (categories.isEmpty) {
           return const Center(
             child: Text(
-              "No categories",
-              style: TextStyle(color: Colors.white),
+              "No categories found",
+              style: TextStyle(color: Colors.white70),
             ),
           );
         }
+
+        final isIncome = type == 'income';
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -35,13 +37,10 @@ class CategoryList extends StatelessWidget {
           itemBuilder: (context, index) {
             final category = categories[index];
 
-            final double totalAmount = transactionBox.values
+            final totalAmount = transactionBox.values
                 .where((t) =>
-                    t.category == category.name &&
-                    t.type == type)
+                    t.category == category.name && t.type == type)
                 .fold(0.0, (sum, t) => sum + t.amount);
-
-            final bool isIncome = type == 'income';
 
             return Slidable(
               key: ValueKey(category.key),
@@ -49,10 +48,9 @@ class CategoryList extends StatelessWidget {
                 motion: const StretchMotion(),
                 children: [
                   SlidableAction(
-                    onPressed: (_) {
-                      categoryBox.delete(category.key);
-                    },
-                    backgroundColor: Colors.red,
+                    onPressed: (_) =>
+                        categoryBox.delete(category.key),
+                    backgroundColor: Colors.redAccent,
                     foregroundColor: Colors.white,
                     icon: Icons.delete,
                     label: 'Delete',
@@ -60,15 +58,16 @@ class CategoryList extends StatelessWidget {
                 ],
               ),
               child: Container(
-                margin: const EdgeInsets.only(bottom: 12),
+                margin: const EdgeInsets.only(bottom: 14),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  color: const Color(0xff1E293B),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
                   children: [
                     CircleAvatar(
+                      radius: 22,
                       backgroundColor:
                           isIncome ? Colors.green : Colors.red,
                       child: const Icon(
@@ -76,21 +75,23 @@ class CategoryList extends StatelessWidget {
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      category.name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        category.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                    const Spacer(),
                     Text(
                       "₹${totalAmount.toStringAsFixed(2)}",
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
                         color:
-                            isIncome ? Colors.green : Colors.red,
+                            isIncome ? Colors.greenAccent : Colors.redAccent,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],

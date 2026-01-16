@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:money_manager_app/model/category_model.dart';
+import 'package:money_manager_app/widget/catagory_dialog.dart';
 import 'package:money_manager_app/widget/catogorylist.dart';
 
 class CategoryScreen extends StatefulWidget {
@@ -23,19 +24,23 @@ class _CategoryScreenState extends State<CategoryScreen>
     categoryBox = Hive.box<CategoryModel>('categoryBox');
   }
 
-  String capitalize(String text){
-    if (text.isEmpty)return text;
-    return text[0].toUpperCase()+text.substring(1).toLowerCase();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 86, 86, 86),
+      backgroundColor: const Color(0xff0F172A),
       appBar: AppBar(
-        title: const Text("Category"),
+        elevation: 0,
+        backgroundColor: const Color(0xff0F172A),
+        title: const Text(
+          "Categories",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.amber,
+          ),
+        ),
         bottom: TabBar(
           controller: _tabController,
+          indicatorColor: Colors.amber,
           tabs: const [
             Tab(text: "Income"),
             Tab(text: "Expense"),
@@ -49,50 +54,18 @@ class _CategoryScreenState extends State<CategoryScreen>
           CategoryList(type: 'expense'),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: addCategoryDialog,
-        child: const Icon(Icons.add),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.indigo,
+        icon: const Icon(Icons.add),
+        label: const Text("Add Category"),
+        onPressed: () {
+          showAddCategoryDialog(
+            context: context,
+            tabController: _tabController,
+            categoryBox: categoryBox,
+          );
+        },
       ),
-    );
-
-}
-
-  void addCategoryDialog() {
-    final controller = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Add Category"),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(hintText: "Category name"),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (controller.text.isEmpty) return;
-
-                final type = _tabController.index == 0 ? 'income' : 'expense';
-
-                final category = CategoryModel(
-                  name: capitalize(controller.text.trim()),
-                  type: type,
-                );
-
-                categoryBox.add(category);
-                Navigator.pop(context);
-              },
-              child: const Text("Add"),
-            ),
-          ],
-        );
-      },
     );
   }
 }
