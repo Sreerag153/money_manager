@@ -52,6 +52,7 @@ void showAddCategoryDialog({
                 CategoryModel(
                   name: capitalize(controller.text.trim()),
                   type: type,
+                  isReserved: true
                 ),
               );
 

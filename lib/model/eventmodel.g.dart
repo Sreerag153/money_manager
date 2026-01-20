@@ -25,13 +25,14 @@ class EventModelAdapter extends TypeAdapter<EventModel> {
       splitAmount: fields[5] as double?,
       attachmentPath: fields[6] as String?,
       paymentType: fields[7] as String,
+      expenceAdd: fields[8] as bool?,
     );
   }
 
   @override
   void write(BinaryWriter writer, EventModel obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -47,7 +48,9 @@ class EventModelAdapter extends TypeAdapter<EventModel> {
       ..writeByte(6)
       ..write(obj.attachmentPath)
       ..writeByte(7)
-      ..write(obj.paymentType);
+      ..write(obj.paymentType)
+      ..writeByte(8)
+      ..write(obj.expenceAdd);
   }
 
   @override

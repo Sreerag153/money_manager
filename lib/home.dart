@@ -6,6 +6,7 @@ import 'package:money_manager_app/pages/wallet.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
+  static String routeName = 'Home_screen';
 
   @override
   State<Homepage> createState() => _HomepageState();

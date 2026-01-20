@@ -38,25 +38,25 @@ class CategoryList extends StatelessWidget {
             final category = categories[index];
 
             final totalAmount = transactionBox.values
-                .where((t) =>
-                    t.category == category.name && t.type == type)
+                .where((t) => t.category == category.name && t.type == type)
                 .fold(0.0, (sum, t) => sum + t.amount);
 
             return Slidable(
               key: ValueKey(category.key),
-              endActionPane: ActionPane(
-                motion: const StretchMotion(),
-                children: [
-                  SlidableAction(
-                    onPressed: (_) =>
-                        categoryBox.delete(category.key),
-                    backgroundColor: Colors.redAccent,
-                    foregroundColor: Colors.white,
-                    icon: Icons.delete,
-                    label: 'Delete',
-                  ),
-                ],
-              ),
+              endActionPane: category.isReserved
+                  ? null
+                  : ActionPane(
+                      motion: const StretchMotion(),
+                      children: [
+                        SlidableAction(
+                          onPressed: (_) => categoryBox.delete(category.key),
+                          backgroundColor: Colors.redAccent,
+                          foregroundColor: Colors.white,
+                          icon: Icons.delete,
+                          label: 'Delete',
+                        ),
+                      ],
+                    ),
               child: Container(
                 margin: const EdgeInsets.only(bottom: 14),
                 padding: const EdgeInsets.all(16),
@@ -68,12 +68,8 @@ class CategoryList extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 22,
-                      backgroundColor:
-                          isIncome ? Colors.green : Colors.red,
-                      child: const Icon(
-                        Icons.category,
-                        color: Colors.white,
-                      ),
+                      backgroundColor: isIncome ? Colors.green : Colors.red,
+                      child: const Icon(Icons.category, color: Colors.white),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -89,8 +85,7 @@ class CategoryList extends StatelessWidget {
                     Text(
                       "₹${totalAmount.toStringAsFixed(2)}",
                       style: TextStyle(
-                        color:
-                            isIncome ? Colors.greenAccent : Colors.redAccent,
+                        color: isIncome ? Colors.greenAccent : Colors.redAccent,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

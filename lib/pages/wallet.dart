@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:intl/intl.dart';
 
 import 'package:money_manager_app/database/transactiondb.dart';
 import 'package:money_manager_app/model/transaction_model.dart';
@@ -13,16 +14,36 @@ class Wallet extends StatefulWidget {
 }
 
 class _WalletState extends State<Wallet> {
+  DateTimeRange? selectedRange;
+  String filterType = 'all';
+
   double getBalance(List<TransactionModel> transactions) {
     double income = 0;
     double expense = 0;
-
     for (var tx in transactions) {
-      tx.type == 'income'
-          ? income += tx.amount
-          : expense += tx.amount;
+      tx.type == 'income' ? income += tx.amount : expense += tx.amount;
     }
     return income - expense;
+  }
+
+  List<TransactionModel> applyFilters(List<TransactionModel> all) {
+    return all.where((tx) {
+      final matchType = filterType == 'all' ? true : tx.type == filterType;
+      final matchDate = selectedRange == null
+          ? true
+          : (tx.date.isAfter(selectedRange!.start.subtract(const Duration(days: 1))) &&
+              tx.date.isBefore(selectedRange!.end.add(const Duration(days: 1))));
+      return matchType && matchDate;
+    }).toList();
+  }
+
+  Map<String, List<TransactionModel>> groupByDate(List<TransactionModel> list) {
+    final Map<String, List<TransactionModel>> map = {};
+    for (var tx in list) {
+      final key = DateFormat('yyyy-MM-dd').format(tx.date);
+      map.putIfAbsent(key, () => []).add(tx);
+    } 
+    return map;
   }
 
   @override
@@ -35,114 +56,175 @@ class _WalletState extends State<Wallet> {
         title: const Text(
           "Wallet",
           style: TextStyle(
-            color: Colors.amber,
+            color: Color.fromRGBO(0, 255, 98, 0.871),
             fontWeight: FontWeight.bold,
           ),
         ),
       ),
       body: ValueListenableBuilder(
-        valueListenable:
-            Hive.box<TransactionModel>('transactions').listenable(),
+        valueListenable: Hive.box<TransactionModel>('transactions').listenable(),
         builder: (context, Box<TransactionModel> box, _) {
-          final transactions = box.values.toList()
+          final allTransactions = box.values.toList()
             ..sort((a, b) => b.date.compareTo(a.date));
+
+          final filteredTransactions = applyFilters(allTransactions);
+          final grouped = groupByDate(filteredTransactions);
+          final dates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
           return Column(
             children: [
-              _balanceCard(getBalance(transactions)),
-
+              _balanceCard(getBalance(allTransactions)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    Text("Transation History " ,style: TextStyle(fontWeight: FontWeight.bold,fontSize: 18,color: const Color.fromARGB(255, 125, 3, 246)),),
+                    Row(
+                      children: [
+                        DropdownButton<String>(
+                          value: filterType,
+                          dropdownColor: const Color(0xff1E293B),
+                          style: const TextStyle(color: Colors.white),
+                          items: const [
+                            DropdownMenuItem(value: 'all', child: Text('All')),
+                            DropdownMenuItem(value: 'income', child: Text('Income')),
+                            DropdownMenuItem(value: 'expense', child: Text('Expense')),
+                          ],
+                          onChanged: (value) {
+                            setState(() => filterType = value!);
+                          },
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.date_range, color: Colors.white),
+                          onPressed: () async {
+                            final picked = await showDateRangePicker(
+                              context: context,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setState(() => selectedRange = picked);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
               Expanded(
-                child: transactions.isEmpty
+                child: filteredTransactions.isEmpty
                     ? const Center(
                         child: Text(
-                          "No transactions yet",
+                          "No transactions found",
                           style: TextStyle(color: Colors.white70),
                         ),
                       )
                     : ListView.builder(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        itemCount: transactions.length,
+                        itemCount: dates.length,
                         itemBuilder: (context, index) {
-                          final tx = transactions[index];
-                          final isIncome = tx.type == 'income';
+                          final dateKey = dates[index];
+                          final items = grouped[dateKey]!;
 
-                          return Slidable(
-                            key: ValueKey(tx.key),
-                            endActionPane: ActionPane(
-                              motion: const StretchMotion(),
-                              children: [
-                                SlidableAction(
-                                  onPressed: (_) =>
-                                      TransactionDB.delete(tx.key),
-                                  backgroundColor: Colors.redAccent,
-                                  foregroundColor: Colors.white,
-                                  icon: Icons.delete,
-                                  label: 'Delete',
-                                ),
-                              ],
-                            ),
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: const Color(0xff1E293B),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 22,
-                                    backgroundColor: isIncome
-                                        ? Colors.green
-                                        : Colors.red,
-                                    child: Icon(
-                                      isIncome
-                                          ? Icons.arrow_downward
-                                          : Icons.arrow_upward,
-                                      color: Colors.white,
-                                    ),
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                                child: Text(
+                                  DateFormat('dd MMM yyyy')
+                                      .format(DateTime.parse(dateKey)),
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                ),
+                              ),
+                              ...items.map((tx) {
+                                final isIncome = tx.type == 'income';
+                                return Slidable(
+                                  key: ValueKey(tx.key),
+                                  endActionPane: ActionPane(
+                                    motion: const StretchMotion(),
+                                    children: [
+                                      SlidableAction(
+                                        onPressed: (_) =>
+                                            TransactionDB.delete(tx.key),
+                                        backgroundColor: Colors.redAccent,
+                                        foregroundColor: Colors.white,
+                                        icon: Icons.delete,
+                                        label: 'Delete',
+                                      ),
+                                    ],
+                                  ),
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 8,
+                                    ),
+                                    padding: const EdgeInsets.all(14),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xff1E293B),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Row(
                                       children: [
-                                        Text(
-                                          tx.category,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
+                                        CircleAvatar(
+                                          radius: 22,
+                                          backgroundColor:
+                                              isIncome ? Colors.green : Colors.red,
+                                          child: Icon(
+                                            isIncome
+                                                ? Icons.arrow_downward
+                                                : Icons.arrow_upward,
                                             color: Colors.white,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                tx.category.isEmpty
+                                                    ? 'General'
+                                                    : tx.category,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                isIncome ? 'Credited' : 'Debited',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: isIncome
+                                                      ? Colors.greenAccent
+                                                      : Colors.redAccent,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                         Text(
-                                          tx.date
-                                              .toString()
-                                              .split(' ')[0],
-                                          style: const TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 12,
+                                          "${isIncome ? '+' : '-'}₹${tx.amount.toStringAsFixed(2)}",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                            color: isIncome
+                                                ? Colors.greenAccent
+                                                : Colors.redAccent,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  Text(
-                                    "${isIncome ? '+' : '-'}₹${tx.amount.toStringAsFixed(2)}",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                      color: isIncome
-                                          ? Colors.greenAccent
-                                          : Colors.redAccent,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                                );
+                              }).toList(),
+                            ],
                           );
                         },
                       ),
@@ -163,10 +245,7 @@ class _WalletState extends State<Wallet> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
           gradient: const LinearGradient(
-            colors: [
-              Color(0xff6366F1),
-              Color(0xff8B5CF6),
-            ],
+            colors: [Color(0xff6366F1), Color(0xff8B5CF6)],
           ),
         ),
         child: Column(

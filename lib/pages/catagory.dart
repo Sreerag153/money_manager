@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:money_manager_app/database/catagorydb.dart';
 
 import 'package:money_manager_app/model/category_model.dart';
 import 'package:money_manager_app/widget/catagory_dialog.dart';
@@ -22,6 +23,7 @@ class _CategoryScreenState extends State<CategoryScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     categoryBox = Hive.box<CategoryModel>('categoryBox');
+    CategoryDB.initializeDefaultCategories();
   }
 
   @override
@@ -35,7 +37,7 @@ class _CategoryScreenState extends State<CategoryScreen>
           "Categories",
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.amber,
+            color: Color.fromRGBO(0, 255, 98, 0.871),
           ),
         ),
         bottom: TabBar(
@@ -49,7 +51,7 @@ class _CategoryScreenState extends State<CategoryScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: const [
+        children: [
           CategoryList(type: 'income'),
           CategoryList(type: 'expense'),
         ],
@@ -58,13 +60,11 @@ class _CategoryScreenState extends State<CategoryScreen>
         backgroundColor: Colors.indigo,
         icon: const Icon(Icons.add),
         label: const Text("Add Category"),
-        onPressed: () {
-          showAddCategoryDialog(
-            context: context,
-            tabController: _tabController,
-            categoryBox: categoryBox,
-          );
-        },
+        onPressed: () => showAddCategoryDialog(
+          context: context,
+          tabController: _tabController,
+          categoryBox: categoryBox,
+        ),
       ),
     );
   }

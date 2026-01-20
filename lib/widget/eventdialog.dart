@@ -1,20 +1,37 @@
-
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:money_manager_app/helper/event_dealog_widget.dart';
 import 'package:money_manager_app/model/category_model.dart';
 import 'package:money_manager_app/model/eventmodel.dart';
+import 'package:money_manager_app/model/transaction_model.dart';
+
+Future<void> addEventExpense(EventModel event) async {
+  if (event.expenceAdd == true) return;
+
+  final box = Hive.box<TransactionModel>('transactions');
+
+  await box.add(
+    TransactionModel(
+      amount: event.splitAmount ?? 0,
+      category: event.category ?? 'General',
+      type: 'expense',
+      account: event.paymentType,
+      date: DateTime.now(),
+      note: 'Event: ${event.name}',
+    ),
+  );
+
+  event.expenceAdd = true;
+  await event.save();
+}
 
 Future<EventModel?> eventDialog(BuildContext context, {EventModel? event}) {
   final nameController = TextEditingController(text: event?.name ?? '');
-  final amountController = TextEditingController(
-    text: event?.totalAmount.toString() ?? '',
-  );
-  final membersController = TextEditingController(
-    text: event?.members.toString() ?? '',
-  );
+  final amountController =
+      TextEditingController(text: event?.totalAmount.toString() ?? '');
+  final membersController =
+      TextEditingController(text: event?.members.toString() ?? '');
 
   String selectedStatus = event?.status ?? 'Pending';
   String selectedPayment = event?.paymentType ?? 'Cash';
@@ -51,27 +68,18 @@ Future<EventModel?> eventDialog(BuildContext context, {EventModel? event}) {
                 children: [
                   Text(
                     event == null ? "Add Event" : "Edit Event",
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-
                   const SizedBox(height: 15),
-
                   inputField(controller: nameController, label: "Event Name"),
-
                   const SizedBox(height: 10),
-
                   dropdownField(
                     value: selectedCategory,
                     items: expenseCategories,
                     label: "Category",
                     onChanged: (v) => setState(() => selectedCategory = v!),
                   ),
-
                   const SizedBox(height: 10),
-
                   Row(
                     children: [
                       Expanded(
@@ -93,9 +101,7 @@ Future<EventModel?> eventDialog(BuildContext context, {EventModel? event}) {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 8),
-
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -103,46 +109,31 @@ Future<EventModel?> eventDialog(BuildContext context, {EventModel? event}) {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
-
                   const SizedBox(height: 10),
-
                   dropdownField(
                     value: selectedPayment,
                     items: const ['Cash', 'Account'],
                     label: "Payment Type",
                     onChanged: (v) => setState(() => selectedPayment = v!),
                   ),
-
                   const SizedBox(height: 10),
-
                   dropdownField(
                     value: selectedStatus,
                     items: const ['Pending', 'Closed'],
                     label: "Status",
                     onChanged: (v) => setState(() => selectedStatus = v!),
                   ),
-
                   const SizedBox(height: 20),
                   InkWell(
                     onTap: () async {
-                      try {
-                        final result = await FilePicker.platform.pickFiles(
-                          type: FileType.any,
-                          allowMultiple: false,
-                          withData: false,
-                        );
-
-                        if (result != null &&
-                            result.files.single.path != null) {
-                          setState(() {
-                            attachmentPath = result.files.single.path;
-                          });
-                        }
-                      } catch (e) {
-                        debugPrint("File pick error: $e");
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Failed to pick file")),
-                        );
+                      final result = await FilePicker.platform.pickFiles(
+                        type: FileType.any,
+                        allowMultiple: false,
+                      );
+                      if (result?.files.single.path != null) {
+                        setState(() {
+                          attachmentPath = result!.files.single.path;
+                        });
                       }
                     },
                     child: Container(
@@ -169,7 +160,6 @@ Future<EventModel?> eventDialog(BuildContext context, {EventModel? event}) {
                       ),
                     ),
                   ),
-
                   Row(
                     children: [
                       Expanded(
@@ -180,21 +170,44 @@ Future<EventModel?> eventDialog(BuildContext context, {EventModel? event}) {
                       ),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(
-                              context,
-                              EventModel(
-                                name: nameController.text.trim(),
-                                members: members,
-                                totalAmount: amount,
-                                splitAmount: split,
-                                status: selectedStatus,
-                                category: selectedCategory,
-                                paymentType: selectedPayment,
-                                attachmentPath: attachmentPath,
-                                expenceAdd: event?.expenceAdd ?? false,
-                              ),
-                            );
+                          onPressed: () async {
+                            final isEditing = event != null;
+
+                            final EventModel resultEvent =
+                                isEditing ? event : EventModel(
+                                  name: nameController.text.trim(),
+                                  members: members,
+                                  totalAmount: amount,
+                                  splitAmount: split,
+                                  status: selectedStatus,
+                                  category: selectedCategory,
+                                  paymentType: selectedPayment,
+                                  attachmentPath: attachmentPath,
+                                  expenceAdd: false,
+                                );
+
+                            resultEvent.name = nameController.text.trim();
+                            resultEvent.members = members;
+                            resultEvent.totalAmount = amount;
+                            resultEvent.splitAmount = split;
+                            resultEvent.status = selectedStatus;
+                            resultEvent.category = selectedCategory;
+                            resultEvent.paymentType = selectedPayment;
+                            resultEvent.attachmentPath = attachmentPath;
+
+                            if (!resultEvent.isInBox) {
+                              final box = Hive.box<EventModel>('eventsBox');
+                              await box.add(resultEvent);
+                            } else {
+                              await resultEvent.save();
+                            }
+
+                            if (selectedStatus == 'Closed' &&
+                                resultEvent.expenceAdd != true) {
+                              await addEventExpense(resultEvent);
+                            }
+
+                            Navigator.pop(context, resultEvent);
                           },
                           child: Text(event == null ? "Add" : "Update"),
                         ),

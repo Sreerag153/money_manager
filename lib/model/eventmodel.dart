@@ -28,8 +28,9 @@ class EventModel extends HiveObject {
 
   @HiveField(7)
   String paymentType;
-
-  bool expenceAdd;
+  
+  @HiveField(8)
+  bool? expenceAdd;
 
   EventModel({
     required this.name,
@@ -40,6 +41,6 @@ class EventModel extends HiveObject {
     required this.splitAmount,
     this.attachmentPath,
     required this. paymentType,
-    this.expenceAdd=false
+    this.expenceAdd,
   }) ;
 }

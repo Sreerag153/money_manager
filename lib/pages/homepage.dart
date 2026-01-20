@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-
 import 'package:money_manager_app/model/transaction_model.dart';
 import 'package:money_manager_app/pages/add_expense.dart';
 import 'package:money_manager_app/pages/add_income.dart';
@@ -15,7 +14,7 @@ class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
 
   @override
-  State<HomeContent> createState() => _HomeContentState();
+  State<HomeContent> createState() => _HomeContentState();       
 }
 
 class _HomeContentState extends State<HomeContent> {
@@ -88,7 +87,7 @@ class _HomeContentState extends State<HomeContent> {
           'Money Manager',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.amber,
+            color: Color.fromARGB(255, 13, 112, 205),
           ),
         ),
       ),

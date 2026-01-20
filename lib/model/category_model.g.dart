@@ -19,17 +19,20 @@ class CategoryModelAdapter extends TypeAdapter<CategoryModel> {
     return CategoryModel(
       name: fields[0] as String,
       type: fields[1] as String,
+      isReserved: fields[2] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, CategoryModel obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
-      ..write(obj.type);
+      ..write(obj.type)
+      ..writeByte(2)
+      ..write(obj.isReserved);
   }
 
   @override

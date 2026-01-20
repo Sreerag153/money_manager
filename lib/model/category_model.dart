@@ -9,5 +9,8 @@ class CategoryModel extends HiveObject {
 
   @HiveField(1)
   String type; 
-  CategoryModel({required this.name, required this.type});
+
+  @HiveField(2)
+  bool isReserved;
+  CategoryModel({required this.name, required this.type,required this.isReserved});
 }
