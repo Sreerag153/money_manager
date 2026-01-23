@@ -17,11 +17,33 @@ class _WalletState extends State<Wallet> {
   DateTimeRange? selectedRange;
   String filterType = 'all';
 
-  double getBalance(List<TransactionModel> transactions) {
-    double income = 0;
-    double expense = 0;
-    for (var tx in transactions) {
-      tx.type == 'income' ? income += tx.amount : expense += tx.amount;
+  double getTotalBalance(List<TransactionModel> list) {
+    double income = 0, expense = 0;
+    for (var tx in list) {
+      if (tx.type == 'income') income += tx.amount;
+      else expense += tx.amount;
+    }
+    return income - expense;
+  }
+
+  double getCashBalance(List<TransactionModel> list) {
+    double income = 0, expense = 0;
+    for (var tx in list) {
+      if (tx.account.toLowerCase() == 'cash') {
+        if (tx.type == 'income') income += tx.amount;
+        else expense += tx.amount;
+      }
+    }
+    return income - expense;
+  }
+
+  double getBankBalance(List<TransactionModel> list) {
+    double income = 0, expense = 0;
+    for (var tx in list) {
+      if (tx.account.toLowerCase() == 'bank' || tx.account.toLowerCase() == 'account') {
+        if (tx.type == 'income') income += tx.amount;
+        else expense += tx.amount;
+      }
     }
     return income - expense;
   }
@@ -42,7 +64,7 @@ class _WalletState extends State<Wallet> {
     for (var tx in list) {
       final key = DateFormat('yyyy-MM-dd').format(tx.date);
       map.putIfAbsent(key, () => []).add(tx);
-    } 
+    }
     return map;
   }
 
@@ -64,21 +86,30 @@ class _WalletState extends State<Wallet> {
       body: ValueListenableBuilder(
         valueListenable: Hive.box<TransactionModel>('transactions').listenable(),
         builder: (context, Box<TransactionModel> box, _) {
-          final allTransactions = box.values.toList()
-            ..sort((a, b) => b.date.compareTo(a.date));
-
+          final allTransactions = box.values.toList()..sort((a, b) => b.date.compareTo(a.date));
           final filteredTransactions = applyFilters(allTransactions);
           final grouped = groupByDate(filteredTransactions);
           final dates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
           return Column(
             children: [
-              _balanceCard(getBalance(allTransactions)),
+              _balanceCard(
+                getTotalBalance(allTransactions),
+                getCashBalance(allTransactions),
+                getBankBalance(allTransactions),
+              ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   children: [
-                    Text("Transation History " ,style: TextStyle(fontWeight: FontWeight.bold,fontSize: 18,color: const Color.fromARGB(255, 125, 3, 246)),),
+                    const Text(
+                      "Transaction History",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Color.fromARGB(255, 125, 3, 246),
+                      ),
+                    ),
                     Row(
                       children: [
                         DropdownButton<String>(
@@ -133,8 +164,7 @@ class _WalletState extends State<Wallet> {
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
                                 child: Text(
-                                  DateFormat('dd MMM yyyy')
-                                      .format(DateTime.parse(dateKey)),
+                                  DateFormat('dd MMM yyyy').format(DateTime.parse(dateKey)),
                                   style: const TextStyle(
                                     color: Colors.white70,
                                     fontWeight: FontWeight.bold,
@@ -143,14 +173,14 @@ class _WalletState extends State<Wallet> {
                               ),
                               ...items.map((tx) {
                                 final isIncome = tx.type == 'income';
+
                                 return Slidable(
                                   key: ValueKey(tx.key),
                                   endActionPane: ActionPane(
                                     motion: const StretchMotion(),
                                     children: [
                                       SlidableAction(
-                                        onPressed: (_) =>
-                                            TransactionDB.delete(tx.key),
+                                        onPressed: (_) => TransactionDB.delete(tx.key),
                                         backgroundColor: Colors.redAccent,
                                         foregroundColor: Colors.white,
                                         icon: Icons.delete,
@@ -159,10 +189,7 @@ class _WalletState extends State<Wallet> {
                                     ],
                                   ),
                                   child: Container(
-                                    margin: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 8,
-                                    ),
+                                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                     padding: const EdgeInsets.all(14),
                                     decoration: BoxDecoration(
                                       color: const Color(0xff1E293B),
@@ -172,39 +199,43 @@ class _WalletState extends State<Wallet> {
                                       children: [
                                         CircleAvatar(
                                           radius: 22,
-                                          backgroundColor:
-                                              isIncome ? Colors.green : Colors.red,
+                                          backgroundColor: isIncome ? Colors.green : Colors.red,
                                           child: Icon(
-                                            isIncome
-                                                ? Icons.arrow_downward
-                                                : Icons.arrow_upward,
+                                            isIncome ? Icons.arrow_downward : Icons.arrow_upward,
                                             color: Colors.white,
                                           ),
                                         ),
                                         const SizedBox(width: 14),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                tx.category.isEmpty
-                                                    ? 'General'
-                                                    : tx.category,
+                                                tx.category.isEmpty ? 'General' : tx.category,
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   color: Colors.white,
                                                 ),
                                               ),
                                               const SizedBox(height: 4),
-                                              Text(
-                                                isIncome ? 'Credited' : 'Debited',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: isIncome
-                                                      ? Colors.greenAccent
-                                                      : Colors.redAccent,
-                                                ),
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    tx.account.toLowerCase() == "cash"
+                                                        ? Icons.money
+                                                        : Icons.account_balance,
+                                                    size: 14,
+                                                    color: Colors.white70,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    "${isIncome ? 'Credited' : 'Debited'} • ${tx.account}",
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color: Colors.white70,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),
@@ -214,9 +245,7 @@ class _WalletState extends State<Wallet> {
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 15,
-                                            color: isIncome
-                                                ? Colors.greenAccent
-                                                : Colors.redAccent,
+                                            color: isIncome ? Colors.greenAccent : Colors.redAccent,
                                           ),
                                         ),
                                       ],
@@ -236,12 +265,12 @@ class _WalletState extends State<Wallet> {
     );
   }
 
-  Widget _balanceCard(double balance) {
+  Widget _balanceCard(double total, double cash, double bank) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
           gradient: const LinearGradient(
@@ -251,22 +280,43 @@ class _WalletState extends State<Wallet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Total Balance",
-              style: TextStyle(color: Colors.white70),
-            ),
-            const SizedBox(height: 10),
+            const Text("Total Balance", style: TextStyle(color: Colors.white70)),
+            const SizedBox(height: 6),
             Text(
-              "₹ ${balance.toStringAsFixed(2)}",
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+              "₹ ${total.toStringAsFixed(2)}",
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _miniBalance(Icons.account_balance, "Account", bank),
+                _miniBalance(Icons.money, "Cash", cash),
+              ],
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _miniBalance(IconData icon, String title, double amount) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 16, color: Colors.white70),
+            const SizedBox(width: 4),
+            Text(title, style: const TextStyle(color: Colors.white70)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          "₹ ${amount.toStringAsFixed(2)}",
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+      ],
     );
   }
 }

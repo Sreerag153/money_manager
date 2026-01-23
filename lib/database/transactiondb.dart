@@ -9,9 +9,23 @@ class TransactionDB {
   static Box<WalletModel> get walletBox =>
       Hive.box<WalletModel>('wallet');
 
-  static void add(TransactionModel tx) {
+  static bool add(TransactionModel tx) {
+    final wallet = walletBox.getAt(0)!;
+
+    double balance = 0;
+    if (tx.account == 'Cash') {
+      balance = wallet.cashIncome - wallet.cashExpense;
+    } else {
+      balance = wallet.accIncome - wallet.accExpense;
+    }
+
+    if (tx.type == 'expense' && tx.amount > balance) {
+      return false;
+    }
+
     box.add(tx);
     _updateWallet(tx, true);
+    return true;
   }
 
   static void delete(dynamic key) {
@@ -42,7 +56,4 @@ class TransactionDB {
 
     wallet.save();
   }
-}            
-
-
-
+}

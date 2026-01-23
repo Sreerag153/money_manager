@@ -22,7 +22,7 @@ void showAddCategoryDialog({
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        title: const Text("Add Category"),
+        title: Text(tabController.index==0 ? "Add Income Category": "Add Expence Category"),
         content: TextField(
           controller: controller,
           autofocus: true,

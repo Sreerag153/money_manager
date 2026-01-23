@@ -14,7 +14,7 @@ class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
 
   @override
-  State<HomeContent> createState() => _HomeContentState();       
+  State<HomeContent> createState() => _HomeContentState();
 }
 
 class _HomeContentState extends State<HomeContent> {
@@ -33,12 +33,17 @@ class _HomeContentState extends State<HomeContent> {
     }
   }
 
+  DateTime get startOfWeek =>
+      selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
+
+  DateTime get endOfWeek => startOfWeek.add(const Duration(days: 6));
+
   String get formattedDate {
     switch (dropdownValue) {
       case 'Yearly':
         return DateFormat('yyyy').format(selectedDate);
       case 'Weekly':
-        return 'Week ${DateFormat('w').format(selectedDate)}, ${selectedDate.year}';
+        return "${DateFormat('dd MMM').format(startOfWeek)} - ${DateFormat('dd MMM yyyy').format(endOfWeek)}";
       case 'Daily':
         return DateFormat('dd MMM yyyy').format(selectedDate);
       default:
@@ -58,9 +63,7 @@ class _HomeContentState extends State<HomeContent> {
               d.day == selectedDate.day;
 
         case 'Weekly':
-          return DateFormat('w').format(d) ==
-                  DateFormat('w').format(selectedDate) &&
-              d.year == selectedDate.year;
+          return !d.isBefore(startOfWeek) && !d.isAfter(endOfWeek);
 
         case 'Yearly':
           return d.year == selectedDate.year;
@@ -75,13 +78,13 @@ class _HomeContentState extends State<HomeContent> {
 
   @override
   Widget build(BuildContext context) {
-    final transactionBox =
-        Hive.box<TransactionModel>('transactions');
+    final transactionBox = Hive.box<TransactionModel>('transactions');
 
     return Scaffold(
       backgroundColor: const Color(0xff0F172A),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
         title: const Text(
           'Money Manager',
@@ -96,12 +99,10 @@ class _HomeContentState extends State<HomeContent> {
       body: ValueListenableBuilder(
         valueListenable: transactionBox.listenable(),
         builder: (_, Box<TransactionModel> box, __) {
-          final allTransactions = box.values.toList();
-          final filtered = filterTransactions(allTransactions);
+          final filtered = filterTransactions(box.values.toList());
 
           double income = 0;
           double expense = 0;
-
           double accIncome = 0;
           double accExpense = 0;
           double cashIncome = 0;
@@ -232,14 +233,14 @@ class _HomeContentState extends State<HomeContent> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
+            builder: (context) =>
                 value == 'income'
                     ? const AddIncomePage()
                     : const AddExpensePage(),
           ),
         );
       },
-      itemBuilder: (_) => const [
+      itemBuilder: (context) => const [
         PopupMenuItem(value: 'income', child: Text('Income')),
         PopupMenuItem(value: 'expense', child: Text('Expense')),
       ],

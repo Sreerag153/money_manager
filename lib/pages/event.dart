@@ -73,7 +73,7 @@ class _EventPageState extends State<EventPage> {
             eventBox.add(event);
           }
         },
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       body: ValueListenableBuilder(
         valueListenable: eventBox.listenable(),
@@ -85,7 +85,6 @@ class _EventPageState extends State<EventPage> {
           }
 
           final events = box.values.toList();
-
           final filteredEvents = selectedFilter == 'All'
               ? events
               : events.where((e) => e.status == selectedFilter).toList();
@@ -114,30 +113,9 @@ class _EventPageState extends State<EventPage> {
                           context,
                           event: event,
                         );
-                        if (updated == null) return;
-
-                        if (event.status != 'Closed' &&
-                            updated.status == 'Closed' &&
-                            !(event.expenceAdd ?? false)) {
-                          final amount =
-                              (updated.splitAmount ?? 0) * updated.members;
-
-                          TransactionDB.add(
-                            TransactionModel(
-                              amount: amount,
-                              category: (updated.category ?? 'General').trim(),
-                              type: 'expense',
-                              account: updated.paymentType,
-                              date: DateTime.now(),
-                              note: 'Event: ${updated.name}',
-                            ),
-                          );
-
-                          updated.expenceAdd = true;
-                          await updated.save();
+                        if (updated != null) {
+                          eventBox.put(event.key, updated);
                         }
-
-                        eventBox.put(event.key, updated);
                       },
                       backgroundColor: Colors.blueAccent,
                       foregroundColor: Colors.white,
@@ -203,13 +181,69 @@ class _EventPageState extends State<EventPage> {
                             ],
                           ),
                         ),
-                        Text(
-                          event.status,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: isClosed
-                                ? Colors.redAccent
-                                : Colors.greenAccent,
+                        GestureDetector(
+                          onTap: () async {
+                            if (event.status == 'Pending') {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text("Close Event"),
+                                  content: const Text(
+                                      "Are you sure you want to close this event?"),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: const Text("Cancel"),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      child: const Text("Yes"),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirm == true) {
+                                event.status = 'Closed';
+
+                                if (!(event.expenceAdd ?? false)) {
+                                  TransactionDB.add(
+                                    TransactionModel(
+                                      amount: event.splitAmount ?? 0,
+                                      category:
+                                          (event.category ?? 'General').trim(),
+                                      type: 'expense',
+                                      account: event.paymentType,
+                                      date: DateTime.now(),
+                                      note: 'Event: ${event.name}',
+                                    ),
+                                  );
+                                  event.expenceAdd = true;
+                                }
+
+                                await event.save();
+                                setState(() {});
+                              }
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isClosed
+                                  ? Colors.redAccent
+                                  : Colors.greenAccent,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              event.status,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
                           ),
                         ),
                       ],

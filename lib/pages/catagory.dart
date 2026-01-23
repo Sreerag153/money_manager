@@ -43,6 +43,7 @@ class _CategoryScreenState extends State<CategoryScreen>
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.amber,
+          labelColor: Colors.white,
           tabs: const [
             Tab(text: "Income"),
             Tab(text: "Expense"),
@@ -52,14 +53,14 @@ class _CategoryScreenState extends State<CategoryScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          CategoryList(type: 'income'),
+          CategoryList(type: 'income',),
           CategoryList(type: 'expense'),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.indigo,
-        icon: const Icon(Icons.add),
-        label: const Text("Add Category"),
+        icon: const Icon(Icons.add,color: Colors.white,),
+        label: const Text("Add Category",style: TextStyle(color: Colors.white),),
         onPressed: () => showAddCategoryDialog(
           context: context,
           tabController: _tabController,

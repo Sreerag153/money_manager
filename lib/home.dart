@@ -44,22 +44,22 @@ class _HomepageState extends State<Homepage> {
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
+              selectedIcon: Icon(Icons.home,color: Colors.white,),
               label: '',
             ),
             NavigationDestination(
               icon: Icon(Icons.category_outlined),
-              selectedIcon: Icon(Icons.category),
+              selectedIcon: Icon(Icons.category,color: Colors.white,),
               label: '',
             ),
             NavigationDestination(
               icon: Icon(Icons.wallet_outlined),
-              selectedIcon: Icon(Icons.wallet),
+              selectedIcon: Icon(Icons.wallet,color: Colors.white,),
               label: '',
             ),
             NavigationDestination(
               icon: Icon(Icons.event_outlined),
-              selectedIcon: Icon(Icons.event),
+              selectedIcon: Icon(Icons.event,color: Colors.white,),
               label: '',
             ),
           ],

@@ -56,16 +56,16 @@ class WalletCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
-            _row('Balance', balance, Colors.white),
-            _row('Income', income, Colors.greenAccent),
-            _row('Expense', -expense, Colors.redAccent),
+            row('Balance', balance, Colors.white),
+            row('Income', income, Colors.greenAccent),
+            row('Expense', -expense, Colors.redAccent),
           ],
         ),
       ),
     );
   }
 
-  Widget _row(String label, double value, Color color) {
+  Widget row(String label, double value, Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(

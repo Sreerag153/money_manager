@@ -2,9 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:money_manager_app/home.dart';
+import 'package:money_manager_app/pages/homepage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:money_manager_app/pages/homepage.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -31,6 +31,14 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     loadProfile();
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    jobController.dispose();
+    super.dispose();
   }
 
   Future<void> loadProfile() async {
@@ -80,7 +88,21 @@ class _ProfilePageState extends State<ProfilePage> {
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide.none,
       ),
+      errorStyle: const TextStyle(color: Colors.redAccent),
     );
+  }
+
+  String? requiredValidator(String? v) {
+    if (v == null || v.trim().isEmpty) return 'Required';
+    return null;
+  }
+
+  String? emailValidator(String? v) {
+    if (v == null || v.trim().isEmpty) return 'Required';
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(v)) {
+      return 'Enter valid email';
+    }
+    return null;
   }
 
   @override
@@ -90,11 +112,15 @@ class _ProfilePageState extends State<ProfilePage> {
       appBar: AppBar(
         backgroundColor: const Color(0xff0F172A),
         elevation: 0,
-        title: const Text('My Profile'),
+        title: const Text(
+          'My Profile',
+          style: TextStyle(color: Colors.white),
+        ),
         actions: [
           if (profileCreated)
             IconButton(
               icon: Icon(isEdit ? Icons.check : Icons.edit),
+              color: Colors.white,
               onPressed: () async {
                 if (isEdit) {
                   if (_formKey.currentState!.validate()) {
@@ -112,6 +138,9 @@ class _ProfilePageState extends State<ProfilePage> {
         padding: const EdgeInsets.all(20),
         child: Form(
           key: _formKey,
+          autovalidateMode: isEdit || !profileCreated
+              ? AutovalidateMode.onUserInteraction
+              : AutovalidateMode.disabled,
           child: Column(
             children: [
               GestureDetector(
@@ -132,8 +161,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 enabled: isEdit || !profileCreated,
                 style: const TextStyle(color: Colors.white),
                 decoration: fieldStyle('Name'),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Required' : null,
+                validator: requiredValidator,
               ),
               const SizedBox(height: 15),
               TextFormField(
@@ -141,8 +169,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 enabled: isEdit || !profileCreated,
                 style: const TextStyle(color: Colors.white),
                 decoration: fieldStyle('Email'),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Required' : null,
+                validator: emailValidator,
               ),
               const SizedBox(height: 15),
               TextFormField(
@@ -150,8 +177,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 enabled: isEdit || !profileCreated,
                 style: const TextStyle(color: Colors.white),
                 decoration: fieldStyle('Job'),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Required' : null,
+                validator: requiredValidator,
               ),
               const SizedBox(height: 30),
               if (!profileCreated)
@@ -176,7 +202,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     },
                     child: const Text(
                       'Create Profile',
-                      style: TextStyle(fontSize: 16),
+                      style:
+                          TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ),
                 ),

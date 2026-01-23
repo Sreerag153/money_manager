@@ -6,6 +6,7 @@ import 'package:money_manager_app/pages/transation.dart';
 
 class AddExpensePage extends StatefulWidget {
   const AddExpensePage({super.key});
+
   @override
   State<AddExpensePage> createState() => _AddExpensePageState();
 }
@@ -21,16 +22,10 @@ class _AddExpensePageState extends State<AddExpensePage> {
   @override
   void initState() {
     super.initState();
-    categories = CategoryDB.getExpenseCategories(includeReserved: true).map((e) => e.name).toList();
+    categories = CategoryDB.getExpenseCategories(includeReserved: true)
+        .map((e) => e.name)
+        .toList();
     if (categories.isNotEmpty) selectedCategory = categories.first;
-  }
-
-  void refreshCategories() {
-    final updated = CategoryDB.getExpenseCategories(includeReserved: true).map((e) => e.name).toList();
-    setState(() {
-      categories = updated;
-      if (!categories.contains(selectedCategory)) selectedCategory = categories.isNotEmpty ? categories.first : null;
-    });
   }
 
   @override
@@ -56,15 +51,40 @@ class _AddExpensePageState extends State<AddExpensePage> {
       onAccountChanged: (v) => setState(() => selectedAccount = v),
       onCategoryChanged: (v) => setState(() => selectedCategory = v),
       onSave: () {
-        if (selectedCategory == null || amountController.text.isEmpty) return;
-        TransactionDB.add(TransactionModel(
-          amount: double.parse(amountController.text),
-          category: selectedCategory!,
-          type: "expense",
-          account: selectedAccount,
-          date: selectedDate,
-          note: noteController.text,
-        ));
+        if (amountController.text.isEmpty) return;
+
+        final amount = double.tryParse(amountController.text) ?? 0;
+
+        final success = TransactionDB.add(
+          TransactionModel(
+            amount: amount,
+            category: selectedCategory!,
+            type: "expense",
+            account: selectedAccount,
+            date: selectedDate,
+            note: noteController.text,
+          ),
+        );
+
+        if (!success) {
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              title: const Text("Warning"),
+              content: Text(
+                "$selectedAccount balance is not enough",
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("OK"),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
+
         Navigator.pop(context);
       },
     );
