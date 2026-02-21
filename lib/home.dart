@@ -1,32 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:money_manager_app/provider/navigation_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:money_manager_app/pages/catagory.dart';
 import 'package:money_manager_app/pages/event.dart';
 import 'package:money_manager_app/pages/homepage.dart';
 import 'package:money_manager_app/pages/wallet.dart';
+import 'package:money_manager_app/widget/colors.dart';
 
-class Homepage extends StatefulWidget {
+class Homepage extends StatelessWidget {
   const Homepage({super.key});
-  static String routeName = 'Home_screen';
-
-  @override
-  State<Homepage> createState() => _HomepageState();
-}
-
-class _HomepageState extends State<Homepage> {
-  int _selectedIndex = 0;
-
-  final List<Widget> _pages = const [
-    HomeContent(),
-    CategoryScreen(),
-    Wallet(),
-    EventPage(),
-  ];
 
   @override
   Widget build(BuildContext context) {
+    final navProvider = context.watch<NavigationProvider>();
+
+    final pages = const [
+      HomeContent(),
+      CategoryScreen(),
+      Wallet(),
+      EventPage(),
+    ];
+
     return Scaffold(
-      backgroundColor: const Color(0xff0F172A),
-      body: _pages[_selectedIndex],
+      backgroundColor: AppColors.scaffoldBg,
+      body: pages[navProvider.currentIndex],
       bottomNavigationBar: Container(
         margin: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -37,29 +35,29 @@ class _HomepageState extends State<Homepage> {
           height: 70,
           backgroundColor: Colors.transparent,
           indicatorColor: const Color(0xff6366F1),
-          selectedIndex: _selectedIndex,
+          selectedIndex: navProvider.currentIndex,
           onDestinationSelected: (index) {
-            setState(() => _selectedIndex = index);
+            context.read<NavigationProvider>().changeIndex(index);
           },
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home,color: Colors.white,),
+              selectedIcon: Icon(Icons.home, color: Colors.white),
               label: '',
             ),
             NavigationDestination(
               icon: Icon(Icons.category_outlined),
-              selectedIcon: Icon(Icons.category,color: Colors.white,),
+              selectedIcon: Icon(Icons.category, color: Colors.white),
               label: '',
             ),
             NavigationDestination(
               icon: Icon(Icons.wallet_outlined),
-              selectedIcon: Icon(Icons.wallet,color: Colors.white,),
+              selectedIcon: Icon(Icons.wallet, color: Colors.white),
               label: '',
             ),
             NavigationDestination(
               icon: Icon(Icons.event_outlined),
-              selectedIcon: Icon(Icons.event,color: Colors.white,),
+              selectedIcon: Icon(Icons.event, color: Colors.white),
               label: '',
             ),
           ],

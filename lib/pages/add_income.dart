@@ -1,73 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:money_manager_app/provider/transation_form_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:money_manager_app/database/catagorydb.dart';
-import 'package:money_manager_app/database/transactiondb.dart';
 import 'package:money_manager_app/model/transaction_model.dart';
 import 'package:money_manager_app/pages/transation.dart';
+import 'package:money_manager_app/provider/transaction_provider.dart';
 
-
-class AddIncomePage extends StatefulWidget {
+class AddIncomePage extends StatelessWidget {
   const AddIncomePage({super.key});
-  @override
-  State<AddIncomePage> createState() => _AddIncomePageState();
-}
-
-class _AddIncomePageState extends State<AddIncomePage> {
-  DateTime selectedDate = DateTime.now();
-  final amountController = TextEditingController();
-  final noteController = TextEditingController();
-  String? selectedCategory;
-  String selectedAccount = "Account";
-  List<String> categories = [];
-
-  @override
-  void initState() {
-    super.initState();
-    categories = CategoryDB.getIncomeCategories(includeReserved: true).map((e) => e.name).toList();
-    if (categories.isNotEmpty) selectedCategory = categories.first;
-  }
-
-  void refreshCategories() {
-    final updated = CategoryDB.getIncomeCategories(includeReserved: true).map((e) => e.name).toList();
-    setState(() {
-      categories = updated;
-      if (!categories.contains(selectedCategory)) selectedCategory = categories.isNotEmpty ? categories.first : null;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
-    return TransactionPage(
-      title: "Add Income",
-      color: Colors.green,
-      categories: categories,
-      selectedDate: selectedDate,
-      onPickDate: () async {
-        final pickedDate = await showDatePicker(
-          context: context,
-          initialDate: selectedDate,
-          firstDate: DateTime(2000),
-          lastDate: DateTime.now(),
-        );
-        if (pickedDate != null) setState(() => selectedDate = pickedDate);
-      },
-      amountController: amountController,
-      noteController: noteController,
-      selectedCategory: selectedCategory!,
-      selectedAccount: selectedAccount,
-      onAccountChanged: (v) => setState(() => selectedAccount = v),
-      onCategoryChanged: (v) => setState(() => selectedCategory = v),
-      onSave: () {
-        if (selectedCategory == null || amountController.text.isEmpty) return;
-        TransactionDB.add(TransactionModel(
-          amount: double.parse(amountController.text),
-          category: selectedCategory!,
-          type: "income",
-          account: selectedAccount,
-          date: selectedDate,
-          note: noteController.text,
-        ));
-        Navigator.pop(context);
-      },
+    final amountController = TextEditingController();
+    final noteController = TextEditingController();
+    final categories = CategoryDB.getIncomeCategories(includeReserved: true).map((e) => e.name).toList();
+
+    return ChangeNotifierProvider(
+      create: (_) => TransactionFormProvider()..init(categories.first, "Account"),
+      child: Consumer<TransactionFormProvider>(
+        builder: (context, form, _) => TransactionPage(
+          title: "Add Income",
+          color: Colors.green,
+          categories: categories,
+          amountController: amountController,
+          noteController: noteController,
+          onSave: () {
+            if (amountController.text.isEmpty) return;
+            context.read<TransactionProvider>().addTransaction(TransactionModel(
+              amount: double.parse(amountController.text),
+              category: form.selectedCategory,
+              type: "income",
+              account: form.selectedAccount,
+              date: form.selectedDate,
+              note: noteController.text,
+            ));
+            Navigator.pop(context);
+          },
+        ),
+      ),
     );
   }
 }

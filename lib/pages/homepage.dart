@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:money_manager_app/model/transaction_model.dart';
-import 'package:money_manager_app/pages/add_expense.dart';
-import 'package:money_manager_app/pages/add_income.dart';
+import 'package:provider/provider.dart';
+import 'package:money_manager_app/provider/transaction_provider.dart';
+import 'package:money_manager_app/widget/colors.dart';
 import 'package:money_manager_app/widget/drawer.dart';
 import 'package:money_manager_app/widget/inc_exp_circle.dart';
 import 'package:money_manager_app/widget/wallet_card.dart';
-
-List<String> dropDownList = ['Monthly', 'Yearly', 'Weekly', 'Daily'];
+import 'package:money_manager_app/pages/add_expense.dart';
+import 'package:money_manager_app/pages/add_income.dart';
 
 class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
@@ -19,7 +18,8 @@ class HomeContent extends StatefulWidget {
 
 class _HomeContentState extends State<HomeContent> {
   DateTime selectedDate = DateTime.now();
-  String dropdownValue = dropDownList.first;
+  String dropdownValue = 'Monthly';
+  final List<String> dropDownList = ['Monthly', 'Yearly', 'Weekly', 'Daily'];
 
   Future<void> pickDate() async {
     final date = await showDatePicker(
@@ -28,191 +28,98 @@ class _HomeContentState extends State<HomeContent> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (date != null) {
-      setState(() => selectedDate = date);
-    }
+    if (date != null) setState(() => selectedDate = date);
   }
-
-  DateTime get startOfWeek =>
-      selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
-
-  DateTime get endOfWeek => startOfWeek.add(const Duration(days: 6));
 
   String get formattedDate {
-    switch (dropdownValue) {
-      case 'Yearly':
-        return DateFormat('yyyy').format(selectedDate);
-      case 'Weekly':
-        return "${DateFormat('dd MMM').format(startOfWeek)} - ${DateFormat('dd MMM yyyy').format(endOfWeek)}";
-      case 'Daily':
-        return DateFormat('dd MMM yyyy').format(selectedDate);
-      default:
-        return DateFormat('MMM yyyy').format(selectedDate);
+    if (dropdownValue == 'Yearly') return DateFormat('yyyy').format(selectedDate);
+    if (dropdownValue == 'Daily') return DateFormat('dd MMM yyyy').format(selectedDate);
+    if (dropdownValue == 'Weekly') {
+      final start = selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
+      final end = start.add(const Duration(days: 6));
+      return "${DateFormat('dd MMM').format(start)} - ${DateFormat('dd MMM yyyy').format(end)}";
     }
-  }
-
-  List<TransactionModel> filterTransactions(
-      List<TransactionModel> transactions) {
-    return transactions.where((tx) {
-      final d = tx.date;
-
-      switch (dropdownValue) {
-        case 'Daily':
-          return d.year == selectedDate.year &&
-              d.month == selectedDate.month &&
-              d.day == selectedDate.day;
-
-        case 'Weekly':
-          return !d.isBefore(startOfWeek) && !d.isAfter(endOfWeek);
-
-        case 'Yearly':
-          return d.year == selectedDate.year;
-
-        case 'Monthly':
-        default:
-          return d.year == selectedDate.year &&
-              d.month == selectedDate.month;
-      }
-    }).toList();
+    return DateFormat('MMM yyyy').format(selectedDate);
   }
 
   @override
   Widget build(BuildContext context) {
-    final transactionBox = Hive.box<TransactionModel>('transactions');
+    final provider = context.watch<TransactionProvider>();
+    final filtered = provider.filterTransactions(
+      selectedDate: selectedDate,
+      filterType: dropdownValue,
+    );
+
+    double inc = 0, exp = 0, accInc = 0, accExp = 0, cashInc = 0, cashExp = 0;
+
+    for (var tx in filtered) {
+      if (tx.type == 'income') {
+        inc += tx.amount;
+        tx.account == 'Account' ? accInc += tx.amount : cashInc += tx.amount;
+      } else {
+        exp += tx.amount;
+        tx.account == 'Account' ? accExp += tx.amount : cashExp += tx.amount;
+      }
+    }
 
     return Scaffold(
-      backgroundColor: const Color(0xff0F172A),
+      backgroundColor: AppColors.scaffoldBg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
-        title: const Text(
-          'Money Manager',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Color.fromARGB(255, 13, 112, 205),
-          ),
-        ),
+        title: const Text('Money Manager', style: TextStyle(color: AppColors.moneyManagerTitle)),
       ),
       drawer: const AppDrawer(),
       floatingActionButton: _fab(context),
-      body: ValueListenableBuilder(
-        valueListenable: transactionBox.listenable(),
-        builder: (_, Box<TransactionModel> box, __) {
-          final filtered = filterTransactions(box.values.toList());
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _summaryCard(inc, exp, (inc + exp)),
+            const SizedBox(height: 24),
+            WalletCard(title: 'Bank Account', icon: Icons.account_balance, balance: accInc - accExp, income: accInc, expense: accExp),
+            const SizedBox(height: 16),
+            WalletCard(title: 'Cash', icon: Icons.wallet, balance: cashInc - cashExp, income: cashInc, expense: cashExp),
+          ],
+        ),
+      ),
+    );
+  }
 
-          double income = 0;
-          double expense = 0;
-          double accIncome = 0;
-          double accExpense = 0;
-          double cashIncome = 0;
-          double cashExpense = 0;
-
-          for (var tx in filtered) {
-            if (tx.type == 'income') {
-              income += tx.amount;
-              tx.account == 'Account'
-                  ? accIncome += tx.amount
-                  : cashIncome += tx.amount;
-            } else {
-              expense += tx.amount;
-              tx.account == 'Account'
-                  ? accExpense += tx.amount
-                  : cashExpense += tx.amount;
-            }
-          }
-
-          final total = income + expense;
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(22),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xff6366F1), Color(0xff8B5CF6)],
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          DropdownButton<String>(
-                            value: dropdownValue,
-                            underline: const SizedBox(),
-                            dropdownColor: const Color(0xff1E293B),
-                            items: dropDownList
-                                .map(
-                                  (e) => DropdownMenuItem(
-                                    value: e,
-                                    child: Text(
-                                      e,
-                                      style: const TextStyle(
-                                          color: Colors.white),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (v) =>
-                                setState(() => dropdownValue = v!),
-                          ),
-                          GestureDetector(
-                            onTap: pickDate,
-                            child: Text(
-                              formattedDate,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 30),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          CircularTile(
-                            title: 'Income',
-                            value: income,
-                            percent: total == 0 ? 0 : income / total,
-                            color: Colors.greenAccent,
-                          ),
-                          CircularTile(
-                            title: 'Expense',
-                            value: expense,
-                            percent: total == 0 ? 0 : expense / total,
-                            color: Colors.redAccent,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                WalletCard(
-                  title: 'Bank Account',
-                  icon: Icons.account_balance,
-                  balance: accIncome - accExpense,
-                  income: accIncome,
-                  expense: accExpense,
-                ),
-                const SizedBox(height: 16),
-                WalletCard(
-                  title: 'Cash',
-                  icon: Icons.wallet,
-                  balance: cashIncome - cashExpense,
-                  income: cashIncome,
-                  expense: cashExpense,
-                ),
-              ],
-            ),
-          );
-        },
+  Widget _summaryCard(double income, double expense, double total) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(colors: [AppColors.primaryGradientStart, AppColors.primaryGradientEnd]),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              DropdownButton<String>(
+                value: dropdownValue,
+                underline: const SizedBox(),
+                dropdownColor: const Color(0xff1E293B),
+                items: dropDownList.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(color: Colors.white)))).toList(),
+                onChanged: (v) => setState(() => dropdownValue = v!),
+              ),
+              GestureDetector(
+                onTap: pickDate,
+                child: Text(formattedDate, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 30),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              CircularTile(title: 'Income', value: income, percent: total == 0 ? 0 : income / total, color: AppColors.income),
+              CircularTile(title: 'Expense', value: expense, percent: total == 0 ? 0 : expense / total, color: AppColors.expense),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -221,29 +128,11 @@ class _HomeContentState extends State<HomeContent> {
     return PopupMenuButton<String>(
       icon: Container(
         padding: const EdgeInsets.all(14),
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: [Color(0xff6366F1), Color(0xff8B5CF6)],
-          ),
-        ),
+        decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [AppColors.primaryGradientStart, AppColors.primaryGradientEnd])),
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      onSelected: (value) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                value == 'income'
-                    ? const AddIncomePage()
-                    : const AddExpensePage(),
-          ),
-        );
-      },
-      itemBuilder: (context) => const [
-        PopupMenuItem(value: 'income', child: Text('Income')),
-        PopupMenuItem(value: 'expense', child: Text('Expense')),
-      ],
+      onSelected: (v) => Navigator.push(context, MaterialPageRoute(builder: (_) => v == 'income' ? const AddIncomePage() : const AddExpensePage())),
+      itemBuilder: (_) => [const PopupMenuItem(value: 'income', child: Text('Income')), const PopupMenuItem(value: 'expense', child: Text('Expense'))],
     );
   }
 }

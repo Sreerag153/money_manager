@@ -1,62 +1,49 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:money_manager_app/model/category_model.dart';
-
+import 'package:money_manager_app/provider/catagory_provider.dart';
+import 'package:provider/provider.dart';
 
 void showAddCategoryDialog({
   required BuildContext context,
-  required TabController tabController,
-  required Box<CategoryModel> categoryBox,
+  required bool isIncomeTab,
 }) {
   final controller = TextEditingController();
 
-  String capitalize(String text) {
-    if (text.isEmpty) return text;
-    return text[0].toUpperCase() + text.substring(1).toLowerCase();
-  }
-
   showDialog(
     context: context,
-    builder: (_) {
+    builder: (dialogContext) {
       return AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+        backgroundColor: const Color(0xff1E293B),
+        title: Text(
+          isIncomeTab ? "Add Income Category" : "Add Expense Category",
+          style: const TextStyle(color: Colors.white),
         ),
-        title: Text(tabController.index==0 ? "Add Income Category": "Add Expence Category"),
         content: TextField(
           controller: controller,
           autofocus: true,
+          style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: "Category name",
+            hintStyle: const TextStyle(color: Colors.white38),
             filled: true,
-            fillColor: Colors.grey.shade100,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
+            fillColor: const Color(0xff0F172A),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text("Cancel"),
           ),
           ElevatedButton(
             onPressed: () {
-              if (controller.text.isEmpty) return;
-
-              final type =
-                  tabController.index == 0 ? 'income' : 'expense';
-
-              categoryBox.add(
-                CategoryModel(
-                  name: capitalize(controller.text.trim()),
-                  type: type,
-                  isReserved: true
-                ),
+              final name = controller.text.trim();
+              if (name.isEmpty) return;
+              
+              Provider.of<CategoryProvider>(context, listen: false).addCategory(
+                name,
+                isIncomeTab ? 'income' : 'expense',
               );
-
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
             },
             child: const Text("Add"),
           ),

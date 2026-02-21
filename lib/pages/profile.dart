@@ -1,214 +1,108 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:money_manager_app/home.dart';
-import 'package:money_manager_app/pages/homepage.dart';
+import 'package:money_manager_app/app_state.dart';
+import 'package:money_manager_app/provider/profile_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-class ProfilePage extends StatefulWidget {
+class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
-  static String routeName = 'profile';
 
-  @override
-  State<ProfilePage> createState() => _ProfilePageState();
-}
+  Future<File?> _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return null;
 
-class _ProfilePageState extends State<ProfilePage> {
-  final _formKey = GlobalKey<FormState>();
-
-  final nameController = TextEditingController();
-  final emailController = TextEditingController();
-  final jobController = TextEditingController();
-
-  bool isEdit = false;
-  bool profileCreated = false;
-
-  File? _image;
-  final ImagePicker _picker = ImagePicker();
-
-  @override
-  void initState() {
-    super.initState();
-    loadProfile();
-  }
-
-  @override
-  void dispose() {
-    nameController.dispose();
-    emailController.dispose();
-    jobController.dispose();
-    super.dispose();
-  }
-
-  Future<void> loadProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    nameController.text = prefs.getString('name') ?? '';
-    emailController.text = prefs.getString('email') ?? '';
-    jobController.text = prefs.getString('job') ?? '';
-    final imagePath = prefs.getString('profileImage');
-    if (imagePath != null && File(imagePath).existsSync()) {
-      _image = File(imagePath);
-    }
-    profileCreated = prefs.getBool('profileCreated') ?? false;
-    setState(() {});
-  }
-
-  Future<void> saveProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('name', nameController.text.trim());
-    await prefs.setString('email', emailController.text.trim());
-    await prefs.setString('job', jobController.text.trim());
-    if (_image != null) {
-      await prefs.setString('profileImage', _image!.path);
-    }
-    await prefs.setBool('profileCreated', true);
-  }
-
-  Future<void> pickImage() async {
-    final XFile? pickedFile =
-        await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      final dir = await getApplicationDocumentsDirectory();
-      final newPath = '${dir.path}/${pickedFile.name}';
-      final newImage = await File(pickedFile.path).copy(newPath);
-      setState(() {
-        _image = newImage;
-      });
-    }
-  }
-
-  InputDecoration fieldStyle(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: Colors.white70),
-      filled: true,
-      fillColor: const Color(0xff1E293B),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide.none,
-      ),
-      errorStyle: const TextStyle(color: Colors.redAccent),
-    );
-  }
-
-  String? requiredValidator(String? v) {
-    if (v == null || v.trim().isEmpty) return 'Required';
-    return null;
-  }
-
-  String? emailValidator(String? v) {
-    if (v == null || v.trim().isEmpty) return 'Required';
-    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(v)) {
-      return 'Enter valid email';
-    }
-    return null;
+    final dir = await getApplicationDocumentsDirectory();
+    final newPath = '${dir.path}/${DateTime.now().millisecondsSinceEpoch}.png';
+    return File(picked.path).copy(newPath);
   }
 
   @override
   Widget build(BuildContext context) {
+    final profile = context.watch<ProfileProvider>();
+    final appState = context.read<AppState>();
+
     return Scaffold(
-      backgroundColor: const Color(0xff0F172A),
       appBar: AppBar(
-        backgroundColor: const Color(0xff0F172A),
+        title: const Text("Set Up Profile"),
+        centerTitle: true,
         elevation: 0,
-        title: const Text(
-          'My Profile',
-          style: TextStyle(color: Colors.white),
-        ),
-        actions: [
-          if (profileCreated)
-            IconButton(
-              icon: Icon(isEdit ? Icons.check : Icons.edit),
-              color: Colors.white,
-              onPressed: () async {
-                if (isEdit) {
-                  if (_formKey.currentState!.validate()) {
-                    await saveProfile();
-                    setState(() => isEdit = false);
-                  }
-                } else {
-                  setState(() => isEdit = true);
-                }
-              },
-            ),
-        ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          autovalidateMode: isEdit || !profileCreated
-              ? AutovalidateMode.onUserInteraction
-              : AutovalidateMode.disabled,
-          child: Column(
-            children: [
-              GestureDetector(
-                onTap: (isEdit || !profileCreated) ? pickImage : null,
-                child: CircleAvatar(
-                  radius: 60,
-                  backgroundColor: const Color(0xff1E293B),
-                  backgroundImage: _image != null ? FileImage(_image!) : null,
-                  child: _image == null
-                      ? const Icon(Icons.camera_alt,
-                          size: 40, color: Colors.white70)
-                      : null,
-                ),
-              ),
-              const SizedBox(height: 30),
-              TextFormField(
-                controller: nameController,
-                enabled: isEdit || !profileCreated,
-                style: const TextStyle(color: Colors.white),
-                decoration: fieldStyle('Name'),
-                validator: requiredValidator,
-              ),
-              const SizedBox(height: 15),
-              TextFormField(
-                controller: emailController,
-                enabled: isEdit || !profileCreated,
-                style: const TextStyle(color: Colors.white),
-                decoration: fieldStyle('Email'),
-                validator: emailValidator,
-              ),
-              const SizedBox(height: 15),
-              TextFormField(
-                controller: jobController,
-                enabled: isEdit || !profileCreated,
-                style: const TextStyle(color: Colors.white),
-                decoration: fieldStyle('Job'),
-                validator: requiredValidator,
-              ),
-              const SizedBox(height: 30),
-              if (!profileCreated)
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xff6366F1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    onPressed: () async {
-                      if (_formKey.currentState!.validate()) {
-                        await saveProfile();
-                        Navigator.pushReplacementNamed(
-                          context,
-                          Homepage.routeName,
-                        );
-                      }
-                    },
-                    child: const Text(
-                      'Create Profile',
-                      style:
-                          TextStyle(fontSize: 16, color: Colors.white),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            GestureDetector(
+              onTap: () async {
+                final image = await _pickImage();
+                if (image != null) {
+                  await profile.saveProfile(image.path);
+                }
+              },
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 60,
+                    backgroundColor: Colors.blueGrey,
+                    backgroundImage: profile.image != null 
+                        ? FileImage(profile.image!) 
+                        : null,
+                    child: profile.image == null
+                        ? const Icon(Icons.person, size: 60, color: Colors.white)
+                        : null,
+                  ),
+                  const Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Colors.blue,
+                      child: Icon(Icons.camera_alt, size: 18, color: Colors.white),
                     ),
                   ),
-                ),
-            ],
-          ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 40),
+            TextField(
+              onChanged: (value) => profile.setTempName(value),
+              decoration: InputDecoration(
+                labelText: "Your Name",
+                hintText: "Enter your name",
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                prefixIcon: const Icon(Icons.edit),
+              ),
+            ),
+            const SizedBox(height: 40),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(55),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () async {
+                if (profile.tempName.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Please enter your name")),
+                  );
+                  return;
+                }
+
+                await profile.saveProfile(null);
+                
+                // If this is the initial setup, tell AppState profile is created
+                if (!appState.profileCreated) {
+                  await appState.createProfile();
+                } else {
+                  // If just editing, go back
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text("Save and Continue", style: TextStyle(fontSize: 16)),
+            ),
+          ],
         ),
       ),
     );

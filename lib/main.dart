@@ -1,49 +1,57 @@
 import 'package:flutter/material.dart';
-import 'package:money_manager_app/database/database.dart';
-import 'package:money_manager_app/home.dart';
-import 'package:money_manager_app/pages/profile.dart';
-import 'package:money_manager_app/screens/onboarding.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:money_manager_app/provider/catagory_provider.dart';
+import 'package:provider/provider.dart';
 
+import 'package:money_manager_app/app_state.dart';
+import 'package:money_manager_app/database/database.dart';
+import 'package:money_manager_app/root_screen.dart';
+
+import 'package:money_manager_app/provider/navigation_provider.dart';
+import 'package:money_manager_app/provider/profile_provider.dart';
+import 'package:money_manager_app/provider/transaction_provider.dart';
+import 'package:money_manager_app/provider/event_provider.dart';
+import 'package:money_manager_app/provider/wallet_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
   await Database.init();
-  final prefs=await SharedPreferences.getInstance();
-  final bool seenOnboarding=prefs.getBool('seenOnboarding')??false;
-  final bool profileCreated=prefs.getBool('profileCreated')??false;
-  runApp( MyApp(seenOnboarding: seenOnboarding,profileCreated: profileCreated,));
+  
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AppState()..init()),
+        ChangeNotifierProvider(create: (_) => NavigationProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()..loadProfile()),
+        ChangeNotifierProvider(create: (_) => TransactionProvider()),
+        ChangeNotifierProvider(create: (_) => CategoryProvider()),
+        ChangeNotifierProvider(create: (_) => EventProvider()),
+        ChangeNotifierProvider(create: (_) => WalletProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
-
 class MyApp extends StatelessWidget {
-  final bool seenOnboarding;
-  final bool profileCreated;
-  const MyApp({super.key,required this.seenOnboarding,required this.profileCreated});
-
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    String initialRoute;
-    if (!seenOnboarding){
-      initialRoute='/onboard';
-    }else if (!profileCreated){
-      initialRoute='/profile';
-    }
-    else{
-      initialRoute=Homepage.routeName;
-    }
-
-
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      initialRoute:initialRoute,
-      routes: {
-        "/onboard":(context)=> const Onboarding(),
-         '/profile': (context) => const ProfilePage(),
-        Homepage.routeName:(context)=>Homepage()
-      },
+      title: 'Money Manager',
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xff0F172A),
+        primarySwatch: Colors.indigo,
+        useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xff0F172A),
+          elevation: 0,
+        ),
+      ),
+      home: const RootScreen(),
     );
   }
 }
-

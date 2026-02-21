@@ -1,92 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:money_manager_app/provider/transation_form_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:money_manager_app/database/catagorydb.dart';
-import 'package:money_manager_app/database/transactiondb.dart';
 import 'package:money_manager_app/model/transaction_model.dart';
 import 'package:money_manager_app/pages/transation.dart';
+import 'package:money_manager_app/provider/transaction_provider.dart';
 
-class AddExpensePage extends StatefulWidget {
+class AddExpensePage extends StatelessWidget {
   const AddExpensePage({super.key});
 
   @override
-  State<AddExpensePage> createState() => _AddExpensePageState();
-}
-
-class _AddExpensePageState extends State<AddExpensePage> {
-  DateTime selectedDate = DateTime.now();
-  final amountController = TextEditingController();
-  final noteController = TextEditingController();
-  String? selectedCategory;
-  String selectedAccount = "Cash";
-  List<String> categories = [];
-
-  @override
-  void initState() {
-    super.initState();
-    categories = CategoryDB.getExpenseCategories(includeReserved: true)
-        .map((e) => e.name)
-        .toList();
-    if (categories.isNotEmpty) selectedCategory = categories.first;
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return TransactionPage(
-      title: "Add Expense",
-      color: Colors.red,
-      categories: categories,
-      selectedDate: selectedDate,
-      onPickDate: () async {
-        final pickedDate = await showDatePicker(
-          context: context,
-          initialDate: selectedDate,
-          firstDate: DateTime(2000),
-          lastDate: DateTime.now(),
-        );
-        if (pickedDate != null) setState(() => selectedDate = pickedDate);
-      },
-      amountController: amountController,
-      noteController: noteController,
-      selectedCategory: selectedCategory!,
-      selectedAccount: selectedAccount,
-      onAccountChanged: (v) => setState(() => selectedAccount = v),
-      onCategoryChanged: (v) => setState(() => selectedCategory = v),
-      onSave: () {
-        if (amountController.text.isEmpty) return;
+    final amountController = TextEditingController();
+    final noteController = TextEditingController();
+    final categories = CategoryDB.getExpenseCategories(includeReserved: true).map((e) => e.name).toList();
 
-        final amount = double.tryParse(amountController.text) ?? 0;
-
-        final success = TransactionDB.add(
-          TransactionModel(
-            amount: amount,
-            category: selectedCategory!,
-            type: "expense",
-            account: selectedAccount,
-            date: selectedDate,
-            note: noteController.text,
-          ),
-        );
-
-        if (!success) {
-          showDialog(
-            context: context,
-            builder: (_) => AlertDialog(
-              title: const Text("Warning"),
-              content: Text(
-                "$selectedAccount balance is not enough",
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("OK"),
-                ),
-              ],
-            ),
-          );
-          return;
-        }
-
-        Navigator.pop(context);
-      },
+    return ChangeNotifierProvider(
+      create: (_) => TransactionFormProvider()..init(categories.first, "Cash"),
+      child: Consumer<TransactionFormProvider>(
+        builder: (context, form, _) => TransactionPage(
+          title: "Add Expense",
+          color: Colors.red,
+          categories: categories,
+          amountController: amountController,
+          noteController: noteController,
+          onSave: () {
+            if (amountController.text.isEmpty) return;
+            context.read<TransactionProvider>().addTransaction(TransactionModel(
+              amount: double.parse(amountController.text),
+              category: form.selectedCategory,
+              type: "expense",
+              account: form.selectedAccount,
+              date: form.selectedDate,
+              note: noteController.text,
+            ));
+            Navigator.pop(context);
+          },
+        ),
+      ),
     );
   }
 }
