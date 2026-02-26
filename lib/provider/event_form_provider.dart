@@ -21,11 +21,38 @@ class EventFormProvider extends ChangeNotifier {
 
   double get splitAmount => members > 0 ? totalAmount / members : 0;
 
-  void updateName(String val) { name = val; notifyListeners(); }
-  void updateAmount(String val) { totalAmount = double.tryParse(val) ?? 0; notifyListeners(); }
-  void updateMembers(String val) { members = int.tryParse(val) ?? 0; notifyListeners(); }
-  void updateCategory(String val) { category = val; notifyListeners(); }
-  void updatePayment(String val) { paymentType = val; notifyListeners(); }
-  void updateStatus(String val) { status = val; notifyListeners(); }
-  void updateAttachment(String? path) { attachmentPath = path; notifyListeners(); }
+  void updateName(String val) {
+    name = val;
+    notifyListeners();
+  }
+
+  void updateAmount(String val) {
+    totalAmount = double.tryParse(val) ?? 0;
+    notifyListeners();
+  }
+
+  void updateMembers(String val) {
+    members = int.tryParse(val) ?? 0;
+    notifyListeners();
+  }
+
+  void updateCategory(String val) {
+    category = val;
+    notifyListeners();
+  }
+
+  void updatePayment(String val) {
+    paymentType = val;
+    notifyListeners();
+  }
+
+  void updateStatus(String val) {
+    status = val;
+    notifyListeners();
+  }
+
+  void updateAttachment(String? path) {
+    attachmentPath = path;
+    notifyListeners();
+  }
 }

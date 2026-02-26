@@ -25,7 +25,8 @@ class TransactionProvider extends ChangeNotifier {
     return transactions.where((tx) {
       if (filterType == 'Yearly') return tx.date.year == selectedDate.year;
       if (filterType == 'Monthly') {
-        return tx.date.year == selectedDate.year && tx.date.month == selectedDate.month;
+        return tx.date.year == selectedDate.year &&
+            tx.date.month == selectedDate.month;
       }
       if (filterType == 'Daily') {
         return tx.date.year == selectedDate.year &&
@@ -33,7 +34,9 @@ class TransactionProvider extends ChangeNotifier {
             tx.date.day == selectedDate.day;
       }
       if (filterType == 'Weekly') {
-        final start = selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
+        final start = selectedDate.subtract(
+          Duration(days: selectedDate.weekday - 1),
+        );
         final end = start.add(const Duration(days: 6));
         return tx.date.isAfter(start.subtract(const Duration(seconds: 1))) &&
             tx.date.isBefore(end.add(const Duration(days: 1)));

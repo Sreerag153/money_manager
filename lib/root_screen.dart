@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:money_manager_app/home.dart';
-import 'package:provider/provider.dart';
 import 'package:money_manager_app/app_state.dart';
-import 'package:money_manager_app/pages/homepage.dart';
+import 'package:money_manager_app/home.dart';
 import 'package:money_manager_app/pages/profile.dart';
 import 'package:money_manager_app/screens/onboarding.dart';
+import 'package:provider/provider.dart';
 
 class RootScreen extends StatelessWidget {
   const RootScreen({super.key});

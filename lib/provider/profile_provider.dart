@@ -32,7 +32,7 @@ class ProfileProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _name = _tempName;
     await prefs.setString('name', _name);
-    
+
     if (imagePath != null) {
       await prefs.setString('profileImage', imagePath);
       _image = File(imagePath);

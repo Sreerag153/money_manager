@@ -14,7 +14,9 @@ void showAddCategoryDialog({
       return AlertDialog(
         backgroundColor: const Color(0xff1E293B),
         title: Text(
-          isIncomeTab ? "Add Income Category" : "Add Expense Category",
+          isIncomeTab
+              ? "Add Income Category"
+              : "Add Expense Category",
           style: const TextStyle(color: Colors.white),
         ),
         content: TextField(
@@ -23,26 +25,34 @@ void showAddCategoryDialog({
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: "Category name",
-            hintStyle: const TextStyle(color: Colors.white38),
+            hintStyle:
+                const TextStyle(color: Colors.white38),
             filled: true,
             fillColor: const Color(0xff0F172A),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
+            onPressed: () =>
+                Navigator.pop(dialogContext),
             child: const Text("Cancel"),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               final name = controller.text.trim();
               if (name.isEmpty) return;
-              
-              Provider.of<CategoryProvider>(context, listen: false).addCategory(
+
+              await Provider.of<CategoryProvider>(
+                context,
+                listen: false,
+              ).addCategory(
                 name,
                 isIncomeTab ? 'income' : 'expense',
               );
+
               Navigator.pop(dialogContext);
             },
             child: const Text("Add"),

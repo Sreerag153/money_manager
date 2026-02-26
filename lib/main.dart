@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:money_manager_app/provider/catagory_provider.dart';
 import 'package:provider/provider.dart';
-
 import 'package:money_manager_app/app_state.dart';
 import 'package:money_manager_app/database/database.dart';
 import 'package:money_manager_app/root_screen.dart';
-
 import 'package:money_manager_app/provider/navigation_provider.dart';
 import 'package:money_manager_app/provider/profile_provider.dart';
 import 'package:money_manager_app/provider/transaction_provider.dart';
@@ -45,7 +43,6 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xff0F172A),
         primarySwatch: Colors.indigo,
-        useMaterial3: true,
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xff0F172A),
           elevation: 0,

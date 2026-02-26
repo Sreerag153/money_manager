@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:money_manager_app/database/catagorydb.dart';
 import 'package:money_manager_app/model/category_model.dart';
 
 class CategoryProvider extends ChangeNotifier {
-  final Box<CategoryModel> _box = Hive.box<CategoryModel>('categoryBox');
+  CategoryProvider() {
+    loadDefaults();
+  }
+
+  Future<void> loadDefaults() async {
+    await CategoryDB.initializeDefaultCategories();
+    notifyListeners();
+  }
 
   List<CategoryModel> getCategories(String type) {
-    return _box.values.where((c) => c.type == type).toList();
+    return type == 'income'
+        ? CategoryDB.getIncomeCategories()
+        : CategoryDB.getExpenseCategories();
   }
 
   Future<void> addCategory(String name, String type) async {
@@ -15,14 +24,12 @@ class CategoryProvider extends ChangeNotifier {
       type: type,
       isReserved: false,
     );
-    await _box.add(category);
+    await CategoryDB.addCategory(category);
     notifyListeners();
   }
 
   Future<void> deleteCategory(CategoryModel category) async {
-    if (!category.isReserved) {
-      await category.delete();
-      notifyListeners();
-    }
+    await CategoryDB.deleteCategory(category);
+    notifyListeners();
   }
 }

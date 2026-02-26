@@ -24,8 +24,12 @@ class WalletProvider extends ChangeNotifier {
       final matchType = _filterType == 'all' ? true : tx.type == _filterType;
       final matchDate = _selectedRange == null
           ? true
-          : (tx.date.isAfter(_selectedRange!.start.subtract(const Duration(days: 1))) &&
-             tx.date.isBefore(_selectedRange!.end.add(const Duration(days: 1))));
+          : (tx.date.isAfter(
+                  _selectedRange!.start.subtract(const Duration(days: 1)),
+                ) &&
+                tx.date.isBefore(
+                  _selectedRange!.end.add(const Duration(days: 1)),
+                ));
       return matchType && matchDate;
     }).toList();
   }
@@ -42,8 +46,10 @@ class WalletProvider extends ChangeNotifier {
   double getTotalBalance(List<TransactionModel> list) {
     double income = 0, expense = 0;
     for (var tx in list) {
-      if (tx.type == 'income') income += tx.amount;
-      else expense += tx.amount;
+      if (tx.type == 'income')
+        income += tx.amount;
+      else
+        expense += tx.amount;
     }
     return income - expense;
   }
@@ -52,8 +58,10 @@ class WalletProvider extends ChangeNotifier {
     double income = 0, expense = 0;
     for (var tx in list) {
       if (tx.account.toLowerCase() == 'cash') {
-        if (tx.type == 'income') income += tx.amount;
-        else expense += tx.amount;
+        if (tx.type == 'income')
+          income += tx.amount;
+        else
+          expense += tx.amount;
       }
     }
     return income - expense;
@@ -62,9 +70,12 @@ class WalletProvider extends ChangeNotifier {
   double getBankBalance(List<TransactionModel> list) {
     double income = 0, expense = 0;
     for (var tx in list) {
-      if (tx.account.toLowerCase() == 'bank' || tx.account.toLowerCase() == 'account') {
-        if (tx.type == 'income') income += tx.amount;
-        else expense += tx.amount;
+      if (tx.account.toLowerCase() == 'bank' ||
+          tx.account.toLowerCase() == 'account') {
+        if (tx.type == 'income')
+          income += tx.amount;
+        else
+          expense += tx.amount;
       }
     }
     return income - expense;
