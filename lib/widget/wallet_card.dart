@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../pages/walet_details.dart';
 
-class WalletCard extends StatelessWidget {
+class WalletCard extends StatefulWidget {
   final String title;
   final IconData icon;
   final double balance;
@@ -18,63 +18,100 @@ class WalletCard extends StatelessWidget {
   });
 
   @override
+  State<WalletCard> createState() => _WalletCardState();
+}
+
+class _WalletCardState extends State<WalletCard> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => WalletDetailPage(
-              title: title,
-              balance: balance,
-              income: income,
-              expense: expense,
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 400),
+            pageBuilder: (_, animation, __) => FadeTransition(
+              opacity: animation,
+              child: WalletDetailPage(
+                title: widget.title,
+                balance: widget.balance,
+                income: widget.income,
+                expense: widget.expense,
+              ),
             ),
           ),
         );
       },
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: const Color(0xff1E293B),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: Colors.indigoAccent),
-                const SizedBox(width: 10),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+      child: AnimatedScale(
+        scale: _pressed ? 0.96 : 1,
+        duration: const Duration(milliseconds: 150),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: _pressed
+                ? const Color(0xff334155)
+                : const Color(0xff1E293B),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.25),
+                blurRadius: _pressed ? 4 : 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(widget.icon, color: Colors.indigoAccent),
+                  const SizedBox(width: 10),
+                  Text(
+                    widget.title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            row('Balance', balance, Colors.white),
-            row('Income', income, Colors.greenAccent),
-            row('Expense', -expense, Colors.redAccent),
-          ],
+                ],
+              ),
+              const SizedBox(height: 14),
+              _row('Balance', widget.balance, Colors.white),
+              _row('Income', widget.income, Colors.greenAccent),
+              _row('Expense', -widget.expense, Colors.redAccent),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget row(String label, double value, Color color) {
+  Widget _row(String label, double value, Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(color: Colors.white70)),
-          Text(
-            '₹ ${value.toStringAsFixed(2)}',
-            style: TextStyle(color: color, fontWeight: FontWeight.bold),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: value),
+            duration: const Duration(milliseconds: 600),
+            builder: (context, val, _) {
+              return Text(
+                '₹ ${val.toStringAsFixed(2)}',
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            },
           ),
         ],
       ),

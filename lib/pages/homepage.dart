@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:money_manager_app/widget/floating_action_button.dart';
+import 'package:money_manager_app/widget/summery_card.dart';
 import 'package:provider/provider.dart';
 import 'package:money_manager_app/provider/transaction_provider.dart';
 import 'package:money_manager_app/widget/colors.dart';
 import 'package:money_manager_app/widget/drawer.dart';
-import 'package:money_manager_app/widget/inc_exp_circle.dart';
 import 'package:money_manager_app/widget/wallet_card.dart';
 import 'package:money_manager_app/pages/add_expense.dart';
 import 'package:money_manager_app/pages/add_income.dart';
@@ -16,10 +16,43 @@ class HomeContent extends StatefulWidget {
   State<HomeContent> createState() => _HomeContentState();
 }
 
-class _HomeContentState extends State<HomeContent> {
+class _HomeContentState extends State<HomeContent>
+    with SingleTickerProviderStateMixin {
   DateTime selectedDate = DateTime.now();
   String dropdownValue = 'Monthly';
   final List<String> dropDownList = ['Monthly', 'Yearly', 'Weekly', 'Daily'];
+
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+
+    _fadeAnimation =
+        CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.15),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   Future<void> pickDate() async {
     final date = await showDatePicker(
@@ -28,23 +61,16 @@ class _HomeContentState extends State<HomeContent> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (date != null) setState(() => selectedDate = date);
-  }
 
-  String get formattedDate {
-    if (dropdownValue == 'Yearly') return DateFormat('yyyy').format(selectedDate);
-    if (dropdownValue == 'Daily') return DateFormat('dd MMM yyyy').format(selectedDate);
-    if (dropdownValue == 'Weekly') {
-      final start = selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
-      final end = start.add(const Duration(days: 6));
-      return "${DateFormat('dd MMM').format(start)} - ${DateFormat('dd MMM yyyy').format(end)}";
+    if (date != null) {
+      setState(() => selectedDate = date);
     }
-    return DateFormat('MMM yyyy').format(selectedDate);
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<TransactionProvider>();
+
     final filtered = provider.filterTransactions(
       selectedDate: selectedDate,
       filterType: dropdownValue,
@@ -55,10 +81,14 @@ class _HomeContentState extends State<HomeContent> {
     for (var tx in filtered) {
       if (tx.type == 'income') {
         inc += tx.amount;
-        tx.account == 'Account' ? accInc += tx.amount : cashInc += tx.amount;
+        tx.account == 'Account'
+            ? accInc += tx.amount
+            : cashInc += tx.amount;
       } else {
         exp += tx.amount;
-        tx.account == 'Account' ? accExp += tx.amount : cashExp += tx.amount;
+        tx.account == 'Account'
+            ? accExp += tx.amount
+            : cashExp += tx.amount;
       }
     }
 
@@ -67,72 +97,73 @@ class _HomeContentState extends State<HomeContent> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Money Manager', style: TextStyle(color: AppColors.moneyManagerTitle)),
-      ),
-      drawer: const AppDrawer(),
-      floatingActionButton: _fab(context),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _summaryCard(inc, exp, (inc + exp)),
-            const SizedBox(height: 24),
-            WalletCard(title: 'Bank Account', icon: Icons.account_balance, balance: accInc - accExp, income: accInc, expense: accExp),
-            const SizedBox(height: 16),
-            WalletCard(title: 'Cash', icon: Icons.wallet, balance: cashInc - cashExp, income: cashInc, expense: cashExp),
-          ],
+        title: const Text(
+          'Money Manager',
+          style: TextStyle(color: AppColors.moneyManagerTitle),
         ),
       ),
-    );
-  }
-
-  Widget _summaryCard(double income, double expense, double total) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(colors: [AppColors.primaryGradientStart, AppColors.primaryGradientEnd]),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              DropdownButton<String>(
-                value: dropdownValue,
-                underline: const SizedBox(),
-                dropdownColor: const Color(0xff1E293B),
-                items: dropDownList.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(color: Colors.white)))).toList(),
-                onChanged: (v) => setState(() => dropdownValue = v!),
+      drawer: const AppDrawer(),
+      floatingActionButton: ExpandableFab(
+        onSelect: (type) {
+          if (type == "expense") {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const AddExpensePage(),
               ),
-              GestureDetector(
-                onTap: pickDate,
-                child: Text(formattedDate, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const AddIncomePage(),
               ),
-            ],
-          ),
-          const SizedBox(height: 30),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              CircularTile(title: 'Income', value: income, percent: total == 0 ? 0 : income / total, color: AppColors.income),
-              CircularTile(title: 'Expense', value: expense, percent: total == 0 ? 0 : expense / total, color: AppColors.expense),
-            ],
-          ),
-        ],
+            );
+          }
+        },
       ),
-    );
-  }
-
-  Widget _fab(BuildContext context) {
-    return PopupMenuButton<String>(
-      icon: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [AppColors.primaryGradientStart, AppColors.primaryGradientEnd])),
-        child: const Icon(Icons.add, color: Colors.white),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                SummaryCard(
+                  dropdownValue: dropdownValue,
+                  dropDownList: dropDownList,
+                  selectedDate: selectedDate,
+                  income: inc,
+                  expense: exp,
+                  onDateTap: pickDate,
+                  onDropdownChanged: (value) {
+                    setState(() {
+                      dropdownValue = value!;
+                    });
+                  },
+                ),
+                const SizedBox(height: 24),
+                WalletCard(
+                  title: 'Bank Account',
+                  icon: Icons.account_balance,
+                  balance: accInc - accExp,
+                  income: accInc,
+                  expense: accExp,
+                ),
+                const SizedBox(height: 16),
+                WalletCard(
+                  title: 'Cash',
+                  icon: Icons.wallet,
+                  balance: cashInc - cashExp,
+                  income: cashInc,
+                  expense: cashExp,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
-      onSelected: (v) => Navigator.push(context, MaterialPageRoute(builder: (_) => v == 'income' ? const AddIncomePage() : const AddExpensePage())),
-      itemBuilder: (_) => [const PopupMenuItem(value: 'income', child: Text('Income')), const PopupMenuItem(value: 'expense', child: Text('Expense'))],
     );
   }
 }

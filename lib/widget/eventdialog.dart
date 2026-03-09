@@ -12,9 +12,11 @@ void showEventDialog(BuildContext context, {EventModel? event}) {
   final amountController = TextEditingController();
   final membersController = TextEditingController();
 
-  final expenseCategories = Hive.box<CategoryModel>(
-    'categoryBox',
-  ).values.where((c) => c.type == 'expense').map((c) => c.name).toList();
+  final expenseCategories = Hive.box<CategoryModel>('categoryBox')
+      .values
+      .where((c) => c.type == 'expense')
+      .map((c) => c.name)
+      .toList();
 
   showModalBottomSheet(
     context: context,
@@ -32,17 +34,16 @@ void showEventDialog(BuildContext context, {EventModel? event}) {
         );
 
         nameController.text = form.name;
-        amountController.text = form.totalAmount > 0
-            ? form.totalAmount.toString()
-            : "";
-        membersController.text = form.members > 0
-            ? form.members.toString()
-            : "";
+        amountController.text =
+            form.totalAmount > 0 ? form.totalAmount.toString() : "";
+        membersController.text =
+            form.members > 0 ? form.members.toString() : "";
 
         return form;
       },
       child: Consumer<EventFormProvider>(
-        builder: (context, form, _) => Padding(
+        builder: (context, form, _) => AnimatedPadding(
+          duration: const Duration(milliseconds: 300),
           padding: EdgeInsets.only(
             left: 16,
             right: 16,
@@ -53,25 +54,35 @@ void showEventDialog(BuildContext context, {EventModel? event}) {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  event == null ? "Add Event" : "Edit Event",
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: Text(
+                    event == null ? "Add Event" : "Edit Event",
+                    key: ValueKey(event == null),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
-                TextField(
-                  controller: nameController,
-                  onChanged: (v) => form.updateName(v),
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: "Event Name",
-                    border: OutlineInputBorder(),
+
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  child: TextField(
+                    controller: nameController,
+                    onChanged: (v) => form.updateName(v),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: "Event Name",
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                 ),
+
                 const SizedBox(height: 12),
+
                 DropdownButtonFormField<String>(
                   value: form.category,
                   dropdownColor: const Color(0xff1E293B),
@@ -85,7 +96,9 @@ void showEventDialog(BuildContext context, {EventModel? event}) {
                       .toList(),
                   onChanged: (v) => form.updateCategory(v!),
                 ),
+
                 const SizedBox(height: 12),
+
                 Row(
                   children: [
                     Expanded(
@@ -115,32 +128,42 @@ void showEventDialog(BuildContext context, {EventModel? event}) {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 15),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xff0F172A),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Split Amount",
-                        style: TextStyle(color: Colors.white70),
+
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: form.splitAmount),
+                  duration: const Duration(milliseconds: 500),
+                  builder: (context, value, _) {
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xff0F172A),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      Text(
-                        "₹ ${form.splitAmount.toStringAsFixed(2)}",
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.greenAccent,
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "Split Amount",
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                          Text(
+                            "₹ ${value.toStringAsFixed(2)}",
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.greenAccent,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
+
                 const SizedBox(height: 12),
+
                 DropdownButtonFormField<String>(
                   value: form.paymentType,
                   dropdownColor: const Color(0xff1E293B),
@@ -155,16 +178,20 @@ void showEventDialog(BuildContext context, {EventModel? event}) {
                   ],
                   onChanged: (v) => form.updatePayment(v!),
                 ),
+
                 const SizedBox(height: 12),
+
                 InkWell(
                   onTap: () async {
                     final result = await FilePicker.platform.pickFiles(
                       type: FileType.any,
                     );
-                    if (result != null)
+                    if (result != null) {
                       form.updateAttachment(result.files.single.path);
+                    }
                   },
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.white24),
@@ -175,24 +202,28 @@ void showEventDialog(BuildContext context, {EventModel? event}) {
                         const Icon(Icons.attach_file, color: Colors.white),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            form.attachmentPath == null
-                                ? "Attach File"
-                                : form.attachmentPath!.split('/').last,
-                            style: const TextStyle(color: Colors.white70),
-                            overflow: TextOverflow.ellipsis,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 300),
+                            child: Text(
+                              form.attachmentPath == null
+                                  ? "Attach File"
+                                  : form.attachmentPath!.split('/').last,
+                              key: ValueKey(form.attachmentPath),
+                              style: const TextStyle(color: Colors.white70),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ),
                         if (form.attachmentPath != null)
-                          const Icon(
-                            Icons.check_circle,
-                            color: Colors.greenAccent,
-                          ),
+                          const Icon(Icons.check_circle,
+                              color: Colors.greenAccent),
                       ],
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 20),
+
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size.fromHeight(55),
@@ -201,8 +232,7 @@ void showEventDialog(BuildContext context, {EventModel? event}) {
                   onPressed: () {
                     if (form.name.isEmpty || form.totalAmount <= 0) return;
 
-                    final resultEvent =
-                        event ??
+                    final resultEvent = event ??
                         EventModel(
                           name: form.name,
                           members: form.members,
@@ -223,6 +253,7 @@ void showEventDialog(BuildContext context, {EventModel? event}) {
                     resultEvent.attachmentPath = form.attachmentPath;
 
                     final provider = context.read<EventProvider>();
+
                     if (event == null) {
                       provider.addEvent(resultEvent);
                     } else {

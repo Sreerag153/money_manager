@@ -18,35 +18,45 @@ class CircularTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox(
-              width: 110,
-              height: 110,
-              child: CircularProgressIndicator(
-                value: percent,
-                strokeWidth: 10,
-                backgroundColor: Colors.white24,
-                valueColor: AlwaysStoppedAnimation(color),
-              ),
-            ),
-            Column(
+        TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: percent),
+          duration: const Duration(milliseconds: 2000),
+          curve: Curves.easeOut,
+          builder: (context, animatedPercent, child) {
+            return Stack(
+              alignment: Alignment.center,
               children: [
-                Text(
-                  '₹ ${value.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                SizedBox(
+                  width: 110,
+                  height: 110,
+                  child: CircularProgressIndicator(
+                    value: animatedPercent,
+                    strokeWidth: 10,
+                    backgroundColor: Colors.white24,
+                    valueColor: AlwaysStoppedAnimation(color),
                   ),
                 ),
-                Text(
-                  '${(percent * 100).toStringAsFixed(1)}%',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                Column(
+                  children: [
+                    Text(
+                      '₹ ${value.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${(percent * 100).toStringAsFixed(1)}%',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ],
+            );
+          },
         ),
         const SizedBox(height: 10),
         Text(

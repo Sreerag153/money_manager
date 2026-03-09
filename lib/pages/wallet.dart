@@ -13,7 +13,8 @@ class Wallet extends StatelessWidget {
     final txProvider = context.watch<TransactionProvider>();
     final walletProvider = context.watch<WalletProvider>();
 
-    final allTx = txProvider.transactions..sort((a, b) => b.date.compareTo(a.date));
+    final allTx = txProvider.transactions
+      ..sort((a, b) => b.date.compareTo(a.date));
     final filteredTx = walletProvider.applyFilters(allTx);
     final grouped = walletProvider.groupByDate(filteredTx);
     final dates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
@@ -23,39 +24,82 @@ class Wallet extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xff0F172A),
         elevation: 0,
-        title: const Text("Wallet", style: TextStyle(color: Color(0xff00FF62), fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Wallet",
+          style: TextStyle(
+            color: Color(0xff00FF62),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       body: Column(
         children: [
-          BalanceCard(
-            total: walletProvider.getTotalBalance(allTx),
-            cash: walletProvider.getCashBalance(allTx),
-            bank: walletProvider.getBankBalance(allTx),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+            child: BalanceCard(
+              total: walletProvider.getTotalBalance(allTx),
+              cash: walletProvider.getCashBalance(allTx),
+              bank: walletProvider.getBankBalance(allTx),
+            ),
           ),
           _buildFilterBar(context, walletProvider),
           Expanded(
-            child: filteredTx.isEmpty
-                ? const Center(child: Text("No transactions found", style: TextStyle(color: Colors.white70)))
-                : ListView.builder(
-                    itemCount: dates.length,
-                    itemBuilder: (context, index) {
-                      final dateKey = dates[index];
-                      final items = grouped[dateKey]!;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                            child: Text(
-                              DateFormat('dd MMM yyyy').format(DateTime.parse(dateKey)),
-                              style: const TextStyle(color: Colors.white38, fontWeight: FontWeight.bold),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              child: filteredTx.isEmpty
+                  ? const Center(
+                      child: Text(
+                        "No transactions found",
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    )
+                  : ListView.builder(
+                      key: ValueKey(filteredTx.length),
+                      itemCount: dates.length,
+                      itemBuilder: (context, index) {
+                        final dateKey = dates[index];
+                        final items = grouped[dateKey]!;
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                              child: Text(
+                                DateFormat('dd MMM yyyy')
+                                    .format(DateTime.parse(dateKey)),
+                                style: const TextStyle(
+                                  color: Colors.white38,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
-                          ),
-                          ...items.map((tx) => TransactionItem(tx: tx)),
-                        ],
-                      );
-                    },
-                  ),
+                            ...items.asMap().entries.map((entry) {
+                              final i = entry.key;
+                              final tx = entry.value;
+
+                              return TweenAnimationBuilder(
+                                duration: Duration(
+                                    milliseconds: 400 + (i * 100)),
+                                tween: Tween<double>(begin: 0, end: 1),
+                                builder: (context, value, child) {
+                                  return Opacity(
+                                    opacity: value,
+                                    child: Transform.translate(
+                                      offset: Offset(0, 30 * (1 - value)),
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: TransactionItem(tx: tx ),
+                              );
+                            }),
+                          ],
+                        );
+                      },
+                    ),
+            ),
           ),
         ],
       ),
@@ -71,6 +115,7 @@ class Wallet extends StatelessWidget {
             value: walletProvider.filterType,
             dropdownColor: const Color(0xff1E293B),
             underline: const SizedBox(),
+            style: const TextStyle(color: Colors.white),
             items: const [
               DropdownMenuItem(value: 'all', child: Text("All")),
               DropdownMenuItem(value: 'income', child: Text("Income")),
@@ -83,9 +128,9 @@ class Wallet extends StatelessWidget {
             icon: const Icon(Icons.date_range, color: Colors.white),
             onPressed: () async {
               final picked = await showDateRangePicker(
-                context: context, 
-                firstDate: DateTime(2020), 
-                lastDate: DateTime.now()
+                context: context,
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now(),
               );
               walletProvider.setRange(picked);
             },

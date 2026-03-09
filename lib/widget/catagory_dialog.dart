@@ -13,10 +13,9 @@ void showAddCategoryDialog({
     builder: (dialogContext) {
       return AlertDialog(
         backgroundColor: const Color(0xff1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          isIncomeTab
-              ? "Add Income Category"
-              : "Add Expense Category",
+          isIncomeTab ? "Add Income Category" : "Add Expense Category",
           style: const TextStyle(color: Colors.white),
         ),
         content: TextField(
@@ -25,22 +24,25 @@ void showAddCategoryDialog({
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: "Category name",
-            hintStyle:
-                const TextStyle(color: Colors.white38),
+            hintStyle: const TextStyle(color: Colors.white38),
             filled: true,
             fillColor: const Color(0xff0F172A),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
             ),
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext),
-            child: const Text("Cancel"),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: Colors.white70),
+            ),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
             onPressed: () async {
               final name = controller.text.trim();
               if (name.isEmpty) return;
@@ -48,10 +50,7 @@ void showAddCategoryDialog({
               await Provider.of<CategoryProvider>(
                 context,
                 listen: false,
-              ).addCategory(
-                name,
-                isIncomeTab ? 'income' : 'expense',
-              );
+              ).addCategory(name, isIncomeTab ? 'income' : 'expense');
 
               Navigator.pop(dialogContext);
             },

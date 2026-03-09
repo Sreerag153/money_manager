@@ -12,16 +12,21 @@ class CategoryScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: const Color(0xff0F172A),
         appBar: AppBar(
-          elevation: 0,
           backgroundColor: const Color(0xff0F172A),
+          elevation: 0,
           title: const Text(
             "Categories",
-            style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xff00FF62)),
+            style: TextStyle(
+              color: Color(0xff00FF62),
+              fontWeight: FontWeight.bold,
+            ),
           ),
           bottom: const TabBar(
             indicatorColor: Colors.amber,
-            labelColor: Colors.white,
-            tabs: [Tab(text: "Income"), Tab(text: "Expense")],
+            tabs: [
+              Tab(text: "Income"),
+              Tab(text: "Expense"),
+            ],
           ),
         ),
         body: const TabBarView(
@@ -31,18 +36,21 @@ class CategoryScreen extends StatelessWidget {
           ],
         ),
         floatingActionButton: Builder(
-          builder: (context) => FloatingActionButton.extended(
-            backgroundColor: Colors.indigo,
-            icon: const Icon(Icons.add, color: Colors.white),
-            label: const Text("Add Category", style: TextStyle(color: Colors.white)),
-            onPressed: () {
-              final currentIndex = DefaultTabController.of(context).index;
-              showAddCategoryDialog(
-                context: context,
-                isIncomeTab: currentIndex == 0,
-              );
-            },
-          ),
+          builder: (context) {
+            return FloatingActionButton(
+              backgroundColor: Colors.indigo,
+              child: const Icon(Icons.add),
+              onPressed: () {
+                final index =
+                    DefaultTabController.of(context).index;
+
+                showAddCategoryDialog(
+                  context: context,
+                  isIncomeTab: index == 0,
+                );
+              },
+            );
+          },
         ),
       ),
     );

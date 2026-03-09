@@ -10,7 +10,9 @@ class CategoryList extends StatelessWidget {
   const CategoryList({super.key, required this.type});
 
   Future<void> _confirmDelete(
-      BuildContext context, CategoryModel category) async {
+    BuildContext context,
+    CategoryModel category,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -21,7 +23,7 @@ class CategoryList extends StatelessWidget {
             style: TextStyle(color: Colors.white),
           ),
           content: Text(
-            "Are you sure you want to delete '${category.name}'?",  
+            "Are you sure you want to delete '${category.name}'?",
             style: const TextStyle(color: Colors.white70),
           ),
           actions: [
@@ -30,9 +32,7 @@ class CategoryList extends StatelessWidget {
               child: const Text("Cancel"),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () => Navigator.pop(dialogContext, true),
               child: const Text("Delete"),
             ),
@@ -55,79 +55,105 @@ class CategoryList extends StatelessWidget {
     final transactionProvider = context.watch<TransactionProvider>();
     final categories = categoryProvider.getCategories(type);
 
-    if (categories.isEmpty) {
-      return const Center(
-        child: Text(
-          "No categories found",
-          style: TextStyle(color: Colors.white70),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: categories.length,
-      itemBuilder: (context, index) {
-        final category = categories[index];
-        final total = transactionProvider.transactions
-            .where((t) => t.category == category.name && t.type == type)
-            .fold(0.0, (sum, t) => sum + t.amount);
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 14),
-          child: Slidable(
-            key: ValueKey(category.key),
-            endActionPane: ActionPane(
-              motion: const DrawerMotion(),
-              children: [
-                SlidableAction(
-                  onPressed: (_) => _confirmDelete(context, category),
-                  backgroundColor: Colors.red,
-                  icon: Icons.delete,
-                  label: 'Delete',
-                ),
-              ],
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xff1E293B),
-                borderRadius: BorderRadius.circular(16),
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 500),
+      child: categories.isEmpty
+          ? const Center(
+              child: Text(
+                "No categories found",
+                style: TextStyle(color: Colors.white70),
               ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor:
-                        type == 'income' ? Colors.green : Colors.red,
-                    child:
-                        const Icon(Icons.category, color: Colors.white),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      category.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+            )
+          : ListView.builder(
+              key: ValueKey(categories.length),
+              padding: const EdgeInsets.all(16),
+              itemCount: categories.length,
+              itemBuilder: (context, index) {
+                final category = categories[index];
+                final total = transactionProvider.transactions
+                    .where((t) => t.category == category.name && t.type == type)
+                    .fold(0.0, (sum, t) => sum + t.amount);
+
+                return TweenAnimationBuilder(
+                  duration: Duration(milliseconds: 400 + (index * 100)),
+                  tween: Tween<double>(begin: 0, end: 1),
+                  builder: (context, value, child) {
+                    return Opacity(
+                      opacity: value,
+                      child: Transform.translate(
+                        offset: Offset(0, 30 * (1 - value)),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: Slidable(
+                      key: ValueKey(category.key),
+                      endActionPane: ActionPane(
+                        motion: const DrawerMotion(),
+                        children: [
+                          SlidableAction(
+                            onPressed: (_) => _confirmDelete(context, category),
+                            backgroundColor: Colors.red,
+                            icon: Icons.delete,
+                            label: 'Delete',
+                          ),
+                        ],
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xff1E293B),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: type == 'income'
+                                  ? Colors.green.withValues(alpha:0.1)
+                                  : Colors.red.withValues(alpha: 0.1),
+                              child: Icon(
+                                Icons.category,
+                                color: type == 'income'
+                                    ? Colors.green
+                                    : Colors.red,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Text(
+                                category.name,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            TweenAnimationBuilder<double>(
+                              tween: Tween(begin: 0, end: total),
+                              duration: const Duration(milliseconds: 600),
+                              builder: (context, value, child) {
+                                return Text(
+                                  "₹${value.toStringAsFixed(2)}",
+                                  style: TextStyle(
+                                    color: type == 'income'
+                                        ? Colors.greenAccent
+                                        : Colors.redAccent,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                  Text(
-                    "₹${total.toStringAsFixed(2)}",
-                    style: TextStyle(
-                      color: type == 'income'
-                          ? Colors.greenAccent
-                          : Colors.redAccent,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
-          ),
-        );
-      },
     );
   }
 }
