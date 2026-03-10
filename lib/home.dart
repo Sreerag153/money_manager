@@ -1,30 +1,42 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:money_manager_app/provider/navigation_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:money_manager_app/provider/navigation_provider.dart';
 import 'package:money_manager_app/pages/catagory.dart';
 import 'package:money_manager_app/pages/event.dart';
 import 'package:money_manager_app/pages/homepage.dart';
 import 'package:money_manager_app/pages/wallet.dart';
 import 'package:money_manager_app/widget/colors.dart';
 
-class Homepage extends StatelessWidget {
+class Homepage extends StatefulWidget {
   const Homepage({super.key});
+
+  @override
+  State<Homepage> createState() => _HomepageState();
+}
+
+class _HomepageState extends State<Homepage> {
+  final PageController _controller = PageController();
+
+  final pages = const [
+    HomeContent(),
+    CategoryScreen(),
+    Wallet(),
+    EventPage(),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final navProvider = context.watch<NavigationProvider>();
 
-    final pages = const [
-      HomeContent(),
-      CategoryScreen(),
-      Wallet(),
-      EventPage(),
-    ];
-
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      body: pages[navProvider.currentIndex],
+      body: PageView(
+        controller: _controller,
+        onPageChanged: (index) {
+          context.read<NavigationProvider>().changeIndex(index);
+        },
+        children: pages,
+      ),
       bottomNavigationBar: Container(
         margin: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -38,6 +50,11 @@ class Homepage extends StatelessWidget {
           selectedIndex: navProvider.currentIndex,
           onDestinationSelected: (index) {
             context.read<NavigationProvider>().changeIndex(index);
+            _controller.animateToPage(
+              index,
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeInOut,
+            );
           },
           destinations: const [
             NavigationDestination(
